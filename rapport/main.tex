@@ -1,0 +1,79 @@
+\documentclass[11pt,a4paper,french]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage{listings}
+
+\usepackage{color}
+
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{float}
+
+\usepackage[sorting=none]{biblatex}
+\addbibresource{ref.bib}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\usepackage{geometry}
+\geometry{hmargin=2.5cm,vmargin=2.5cm}
+
+\title{\LARGE{Rain Nowcasting} \\ [0.5cm]\Large{Projet PRAT} \\ [0.25cm]\large{Rapport bibliographique}}
+\author{Lucas Beretti}
+\date{25 octobre 2021}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+\newpage
+
+\section*{Introduction}
+
+\section{Méthodes traditionnelles}
+
+Un premier article parle de différentes méthodes traditionnelles (TREC, MOVA, ROVER) \cite{atmos8030048}. \newline
+
+\noindentdent
+Une librairie Python implémentant des méthodes de prédiction de pluie à court terme. \cite{article}
+
+\section{Méthodes par apprentissage profond}
+
+\subsection{Approches récurrentes}
+
+\subsubsection{ConvLSTM}
+
+L'approche récurrente par ConvLSTM représente la toute première méthode par Deep Learning sur le sujet. Cet article présente des améliorations vis-à-vis de l'approche ROVER basée sur le flot optique. \cite{shi2015convolutional}
+
+\subsubsection{TrajGRU}
+
+D'autres travaux ont été réalisés avec des approches récurrentes dans le but d'améliorer la solution ConvLSTM. Le majeur reproche qui lui était fait est l'invariance par translation introduite par l'opération de convolution qui ne permet pas de bien décrire les mouvements de masses nuageuses comme le fait une approche par flot optique. Par conséquent, le modèle TrajGRU apporte une solution à ce problème en déterminant de manière dynamique, par apprentissage, les connexions entre les couches cachées. \cite{shi2017deep}
+
+\subsection{Approches U-Net}
+
+Une approche U-Net à laquelle on veut comparer les résultats des autres approches. \cite{bouget:hal-03112093} \newline
+
+Un second article compare une approche U-Net, similaire du papier précédent en architecture, au modèle TrajGRU. Les résultats obtenus par le U-Net sont légèrement meilleurs à faible taux de précipitation et les résultats sont légèrement moins bon à un taux plus élevé. \cite{9508500}
+
+\subsection{Approche par réseau de neurones génératif}
+
+Comparaison d'un réseau GAN à plusieurs approches dont un U-Net. De meilleurs résultats sont obtenus pour des précipitations plus importantes et préserve une meilleure enveloppe spatiale. \cite{ravuri2021skillful}
+
+\section{Réalisation du projet}
+
+\subsection{Objectifs du projet}
+
+Comparer les approches récurrentes et GAN au U-Net en \cite{bouget:hal-03112093}.
+
+\subsection{Calendrier prévisionnel}
+
+\newpage
+
+\printbibliography[title=Références]
+
+\end{document}
