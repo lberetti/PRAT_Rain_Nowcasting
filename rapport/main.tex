@@ -6,10 +6,14 @@
 
 \usepackage{color}
 
+\usepackage[francais]{babel}
+
 \usepackage{amsmath}
 \usepackage{graphicx}
 \usepackage{amssymb}
 \usepackage{float}
+
+\usepackage{hyperref}
 
 \usepackage[sorting=none]{biblatex}
 \addbibresource{ref.bib}
@@ -22,7 +26,7 @@
 \geometry{hmargin=2.5cm,vmargin=2.5cm}
 
 \title{\LARGE{Rain Nowcasting} \\ [0.5cm]\Large{Projet PRAT} \\ [0.25cm]\large{Rapport bibliographique}}
-\author{Lucas Beretti}
+\author{Lucas Beretti \\ Encadrant : Dominique Béréziat}
 \date{25 octobre 2021}
 
 \begin{document}
@@ -33,13 +37,22 @@
 
 \newpage
 
-\section*{Introduction}
+\section{Introduction}
+
+Tout au long de son histoire, l'homme a porté un intérêt certain au domaine de la prévision météorologique du fait de la forte dépendance de ses activités à celui-ci. Aujourd'hui encore, elle joue un rôle central dans de nombreux secteurs météo-sensibles comme l'agriculture, le transport, l'énergie, le tourisme ... Bien que les méthodes d'estimation de la météo se sont largement améliorées au cours des dernières décennies, la fiabilité de ces modèles est un sujet sur lequel les météorologues travaillent encore.
+
+La prévision du taux de précipitation est une donnée cruciale pour l'ensemble des secteurs météo-sensibles. Ces prévisions sont effectuées par des modèles physiques intégrant divers phénomènes liés à la dynamique de l'atmosphère. Bien que ces méthodes apportent de bonnes prévisions de précipitation sur plusieurs jours, elles manquent encore de précision à très court terme, jusqu'à deux heures à l'avance. Cette problématique est plus communément appelée "Rain Nowcasting".
+
+L'émergence des technologies d'apprentissage automatique, et plus précisément d'apprentissage profond, a amené certains chercheurs à s'intéresser au problème de prévision du taux de précipitation à court terme. 
+Cet état de l'art a pour but de présenter un panel de méthodes qui ont été élaborées au cours des dernières années.
+
+
 
 \section{Méthodes traditionnelles}
 
 Un premier article parle de différentes méthodes traditionnelles (TREC, MOVA, ROVER) \cite{atmos8030048}. \newline
 
-\noindentdent
+\noindent
 Une librairie Python implémentant des méthodes de prédiction de pluie à court terme. \cite{article}
 
 \section{Méthodes par apprentissage profond}
@@ -58,7 +71,7 @@ D'autres travaux ont été réalisés avec des approches récurrentes dans le bu
 
 Une approche U-Net à laquelle on veut comparer les résultats des autres approches. \cite{bouget:hal-03112093} \newline
 
-Un second article compare une approche U-Net, similaire du papier précédent en architecture, au modèle TrajGRU. Les résultats obtenus par le U-Net sont légèrement meilleurs à faible taux de précipitation et les résultats sont légèrement moins bons à un taux plus élevé. \cite{9508500}
+Un second article compare une approche U-Net, similaire du papier précédent en architecture, au modèle TrajGRU. Les résultats obtenus par le U-Net offrent une meilleure précision à faible taux de précipitation mais souffrent à estimer fiablement un taux de précipitation plus élevé.  \cite{9508500}
 
 \subsection{Approche par réseau de neurones génératif}
 
@@ -66,11 +79,20 @@ Comparaison d'un réseau GAN à plusieurs approches dont un U-Net. De meilleurs 
 
 \section{Réalisation du projet}
 
+\subsection{Données utilisées}
+
 \subsection{Objectifs du projet}
 
-Comparer les approches récurrentes et GAN au U-Net en \cite{bouget:hal-03112093}.
+Les objectifs de ce problème seront de :
+\begin{itemize}
+    \item Comparer les approches récurrentes et GAN au U-Net en \cite{bouget:hal-03112093}.
+    \item Étudier l'effet de l'ajout de données de vent sur l'amélioration des prédictions. 
+    \item Si l'approche génératrice apporte les résultats les plus satisfaisants, on pourra étudier d'autres approches avec un réseau générateur inspiré de l'architecture d'autres articles comme le U-Net par exemple. 
+\end{itemize}
 
 \subsection{Calendrier prévisionnel}
+
+\section{Conclusion}
 
 \newpage
 
