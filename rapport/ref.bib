@@ -12,13 +12,11 @@ ABSTRACT = {Hong Kong Observatory has been operating an in-house developed rainf
 DOI = {10.3390/atmos8030048}
 }
 
-@misc{shi2015convolutional,
-      title={Convolutional LSTM Network: A Machine Learning Approach for Precipitation Nowcasting}, 
-      author={Xingjian Shi and Zhourong Chen and Hao Wang and Dit-Yan Yeung and Wai-kin Wong and Wang-chun Woo},
-      year={2015},
-      eprint={1506.04214},
-      archivePrefix={arXiv},
-      primaryClass={cs.CV}
+@inproceedings{shi2015convolutional,
+  title={Convolutional LSTM Network: A Machine Learning Approach for Precipitation Nowcasting},
+  author={Xingjian Shi and Zhourong Chen and Hao Wang and Dit-Yan Yeung and Wai-Kin Wong and Wang-chun Woo},
+  booktitle={NIPS},
+  year={2015}
 }
 
 @misc{shi2017deep,
@@ -59,13 +57,13 @@ DOI = {10.3390/atmos8030048}
   doi={10.1109/TGRS.2021.3100847}}
 
 
-@misc{ravuri2021skillful,
-      title={Skillful Precipitation Nowcasting using Deep Generative Models of Radar}, 
-      author={Suman Ravuri and Karel Lenc and Matthew Willson and Dmitry Kangin and Remi Lam and Piotr Mirowski and Megan Fitzsimons and Maria Athanassiadou and Sheleem Kashem and Sam Madge and Rachel Prudden and Amol Mandhane and Aidan Clark and Andrew Brock and Karen Simonyan and Raia Hadsell and Niall Robinson and Ellen Clancy and Alberto Arribas and Shakir Mohamed},
-      year={2021},
-      eprint={2104.00954},
-      archivePrefix={arXiv},
-      primaryClass={cs.LG}
+@article{Ravuri2021SkilfulPN,
+  title={Skilful precipitation nowcasting using deep generative models of radar},
+  author={Suman V. Ravuri and Karel Lenc and Matthew Willson and Dmitry Kangin and R{\'e}mi Lam and Piotr W. Mirowski and Megan Fitzsimons and Maria Athanassiadou and Sheleem Kashem and Sam Madge and Rachel Prudden and Amol Mandhane and Aidan Clark and Andrew Brock and Karen Simonyan and Raia Hadsell and Nial H. Robinson and Ellen Clancy and Alberto Arribas and Shakir Mohamed},
+  journal={Nature},
+  year={2021},
+  volume={597},
+  pages={672 - 677}
 }
 
 @article{article,
@@ -77,4 +75,95 @@ title = {Pysteps: an open-source Python library for probabilistic precipitation 
 volume = {12},
 journal = {Geoscientific Model Development},
 doi = {10.5194/gmd-12-4185-2019}
+}
+
+@article{Rinehart:1978,
+   author    =  "R. E. Rinehart and E. T. Garvey",
+   title     =  "Three-dimensional storm motion detection by conventional weather radar",
+   year      =  "1978",
+   journal   =  "Nature",
+   volume    =  "273",
+   pages     =  "287--289"
+}
+
+@ARTICLE{1995JApMe..34.1286L,
+       author = {{Li}, L. and {Schmid}, W. and {Joss}, J.},
+        title = "{Nowcasting of Motion and Growth of Precipitation with Radar over a Complex Orography.}",
+      journal = {Journal of Applied Meteorology},
+         year = 1995,
+        month = jun,
+       volume = {34},
+       number = {6},
+        pages = {1286-1300},
+       adsurl = {https://ui.adsabs.harvard.edu/abs/1995JApMe..34.1286L},
+      adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+}
+
+@article{120026,
+    title = "Application of Multi-Scale Tracking Radar Echoes Scheme in Quantitative Precipitation Nowcasting",
+    journal = "ADVANCES IN ATMOSPHERIC SCIENCES",
+    volume = "30",
+    number = "120026",
+    pages = "448",
+    year = "2013",
+    note = "",
+    issn = "0256-1530",
+    doi = "10.1007/s00376-012-2026-7",
+    url = "http://www.iapjournals.ac.cn/aas//article/id/266",
+    author = {WANG Gaili and WONG Waikin and LIU Liping and WANG Hongyan}
+}
+
+@article{celltrack,
+author = {Kyznarová, Hana and Novák, Petr},
+year = {2005},
+month = {01},
+pages = {},
+title = {Development Of Cell-Tracking Algorithm In The Czech Hydrometeorological Institute}
+}
+
+@ARTICLE{trace_3d,
+       author = {{Handwerker}, Jan},
+        title = "{Cell tracking with TRACE3D{\textemdash}a new algorithm}",
+      journal = {Atmospheric Research},
+         year = 2002,
+        month = jan,
+       volume = {61},
+       number = {1},
+        pages = {15-34},
+          doi = {10.1016/S0169-8095(01)00100-4},
+       adsurl = {https://ui.adsabs.harvard.edu/abs/2002AtmRe..61...15H},
+      adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+}
+
+@article{scit,
+author = {Johnson, J. and MacKeen, Pamela and Witt, Arthur and Mitchell, E. and Stumpf, Greg and Eilts, Michael and Thomas, Kevin},
+year = {1998},
+month = {06},
+pages = {263-276},
+title = {The Storm Cell Identification and Tracking Algorithm: An Enhanced WSR-88D Algorithm},
+volume = {13},
+journal = {Weather and Forecasting - WEATHER FORECAST},
+doi = {10.1175/1520-0434(1998)013<0263:TSCIAT>2.0.CO;2}
+}
+
+@phdthesis{zebiri:tel-03127158,
+  TITLE = {{Estimation de la dynamique atmospherique {\`a} partir de l'assimilation d'images radars multi-echelles. Application {\`a} la prevision des taux de precipitation {\`a} courte echeance, {\`a} partir des images radars.}},
+  AUTHOR = {Zebiri, Aniss},
+  URL = {https://hal.sorbonne-universite.fr/tel-03127158},
+  SCHOOL = {{Sorbonne Universit{\'e}}},
+  YEAR = {2020},
+  MONTH = Jun,
+  KEYWORDS = {Rain nowcasting ; Data Assimilation ; Radar images ; Multiscale ; Pr{\'e}vision {\`a} court terme des pr{\'e}cipitations ; Assimilation de donn{\'e}e ; Images Radar ; Multi-{\'e}chelle},
+  TYPE = {Theses},
+  PDF = {https://hal.sorbonne-universite.fr/tel-03127158/file/These_Aniss.pdf},
+  HAL_ID = {tel-03127158},
+  HAL_VERSION = {v1},
+}
+
+@article{Ranzato2014Video,
+  title={Video (language) modeling: a baseline for generative models of natural videos},
+  author={Marc'Aurelio Ranzato and Arthur D. Szlam and Joan Bruna and Micha{\"e}l Mathieu and Ronan Collobert and Sumit Chopra},
+  journal={ArXiv},
+  year={2014},
+  volume={abs/1412.6604}
 }
