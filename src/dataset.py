@@ -15,7 +15,7 @@ class MeteoDataset(Dataset):
         self.input_length = input_length
         self.output_length = output_length
 
-        self.files_names = [f for f in os.listdir(rain_dir)[:50] if os.path.isfile(os.path.join(rain_dir, f))]
+        self.files_names = [f for f in os.listdir(rain_dir)[:400] if os.path.isfile(os.path.join(rain_dir, f))]
         self.files_names = sorted(self.files_names, key=lambda x: get_date_from_file_name(x))
         #print(self.files_names)
 
