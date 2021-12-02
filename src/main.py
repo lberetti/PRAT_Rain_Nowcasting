@@ -5,7 +5,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from model import cnn_2D
 from dataset import MeteoDataset
-from utils import weighted_mae_loss, weighted_mse_loss, plot_output_gt, compute_weight_mask
+from utils import *
 
 
 def train_network(network, input_length, output_length, epochs, batch_size, device):
@@ -18,8 +18,9 @@ def train_network(network, input_length, output_length, epochs, batch_size, devi
     n_examples_train = len(train)
     n_examples_valid = len(val)
 
-    train_dataloader = DataLoader(train, batch_size=batch_size)
-    valid_dataloader = DataLoader(val, batch_size=batch_size)
+    train_dataloader = DataLoader(train, batch_size=batch_size, shuffle=True)
+    valid_dataloader = DataLoader(val, batch_size=batch_size, shuffle=True)
+
 
     optimizer = torch.optim.Adam(network.parameters(), lr=10**-4)
     #criterion = torch.nn.MSELoss()
@@ -29,6 +30,12 @@ def train_network(network, input_length, output_length, epochs, batch_size, devi
         network.train()
         training_loss = 0.0
         validation_loss = 0.0
+
+        # TODO : Create a class for metrics
+        csi_scores_train = {}
+        csi_scores_val = {}
+        csi_seen_train = {}
+        csi_seen_val = {}
 
         loop = tqdm(train_dataloader)
         loop.set_description(f"Epoch {epoch+1}/{epochs}")
@@ -47,7 +54,20 @@ def train_network(network, input_length, output_length, epochs, batch_size, devi
 
             training_loss += loss.item() / n_examples_train
 
+            csi_scores = CSI_score(outputs, targets)
+            for csi_key in csi_scores:
+                if csi_scores[csi_key] != 'nan':
+                    if csi_key in csi_scores_train:
+                        csi_scores_train[csi_key] += csi_scores[csi_key]
+                        csi_seen_train[csi_key] += 1
+                    else:
+                        csi_scores_train[csi_key] = csi_scores[csi_key]
+                        csi_seen_train[csi_key] = 1
+
             loop.set_postfix({'Train Loss' : training_loss})
+
+        csi_scores_train = normalize_dictionnary_values(csi_scores_train, csi_seen_train, 2)
+        print("[Train] CSI_scores : ", csi_scores_train)
 
         network.eval()
 
@@ -61,16 +81,31 @@ def train_network(network, input_length, output_length, epochs, batch_size, devi
             #loss = criterion(outputs, targets)
             validation_loss += loss.item() / n_examples_valid
 
-        print(f"Validation Loss : {validation_loss:.2f}")
+            csi_scores = CSI_score(outputs, targets)
+            for csi_key in csi_scores:
+                if csi_scores[csi_key] != 'nan':
+                    if csi_key in csi_scores_val:
+                        csi_scores_val[csi_key] += csi_scores[csi_key]
+                        csi_seen_val[csi_key] += 1
+                    else:
+                        csi_scores_val[csi_key] = csi_scores[csi_key]
+                        csi_seen_val[csi_key] = 1
 
-        writer.add_scalar('Loss/train', training_loss, epochs)
-        writer.add_scalar('Loss/test', validation_loss, epochs)
+        csi_scores_val = normalize_dictionnary_values(csi_scores_val, csi_seen_val, 3)
 
-    train_data = train.__getitem__(0)
-    input = train_data['input']
-    target = train_data['target']
-    pred = network.forward(input.unsqueeze(0).to(device=device))
-    plot_output_gt(pred[0][0], target[0])
+        print(f"[Validation] Loss : {validation_loss:.2f}")
+        print("[Validation] CSI_scores", csi_scores_val)
+        print("\n")
+
+        writer.add_scalar('Loss/train', training_loss, epoch)
+        writer.add_scalar('Loss/test', validation_loss, epoch)
+
+        for csi_key in csi_scores_train:
+            writer.add_scalar(csi_key + '/train', csi_scores_train[csi_key], epoch)
+            writer.add_scalar(csi_key + '/valid', csi_scores_val[csi_key], epoch)
+
+
+    save_pred_images(network, val, n_plots=30, output_dir='./images/', device=device)
 
 
 if __name__ == '__main__':
