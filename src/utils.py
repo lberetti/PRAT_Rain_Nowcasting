@@ -8,17 +8,11 @@ def get_date_from_file_name(filename):
     return date_infos
 
 
-def mse_rainfall(output, target):
-
-    weight_mask = compute_weight_mask(target)
-    loss = weighted_mse_loss(output, target, weight_mask)
-
-    return loss
-
-
 def weighted_mse_loss(output, target, weight_mask):
     return torch.sum(torch.multiply(weight_mask, (output - target) ** 2))
 
+def weighted_mae_loss(output, target, weight_mask):
+    return torch.sum(torch.multiply(weight_mask, torch.abs(output - target)))
 
 def compute_weight_mask(target):
 

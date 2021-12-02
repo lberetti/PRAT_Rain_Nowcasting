@@ -5,7 +5,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from model import cnn_2D
 from dataset import MeteoDataset
-from utils import mse_rainfall, plot_output_gt
+from utils import weighted_mae_loss, weighted_mse_loss, plot_output_gt, compute_weight_mask
 
 
 def train_network(network, input_length, output_length, epochs, batch_size, device):
@@ -39,7 +39,8 @@ def train_network(network, input_length, output_length, epochs, batch_size, devi
             targets = targets.to(device=device)
             optimizer.zero_grad()
             outputs = network(inputs)
-            loss = mse_rainfall(outputs, targets)
+            mask = compute_weight_mask(targets)
+            loss = weighted_mse_loss(outputs, targets, mask) + weighted_mae_loss(outputs, targets, mask)
             #loss = criterion(outputs, targets)
             loss.backward()
             optimizer.step()
@@ -55,7 +56,8 @@ def train_network(network, input_length, output_length, epochs, batch_size, devi
             inputs = inputs.to(device=device)
             targets = targets.to(device=device)
             outputs = network(inputs)
-            loss = mse_rainfall(outputs, targets)
+            mask = compute_weight_mask(targets)
+            loss = weighted_mse_loss(outputs, targets, mask) + weighted_mae_loss(outputs, targets, mask)
             #loss = criterion(outputs, targets)
             validation_loss += loss.item() / n_examples_valid
 
@@ -77,4 +79,4 @@ if __name__ == '__main__':
     network = cnn_2D(input_length=12, output_length=5, filter_number=70)
     summary(network, input_size=(12, 128, 128), device='cpu')
     network.to(device=device)
-    train_network(network, input_length=12, output_length=5, epochs=30, batch_size=8, device=device)
+    train_network(network, input_length=12, output_length=5, epochs=5, batch_size=8, device=device)
