@@ -52,25 +52,6 @@ def compute_confusion_matrix(output, target, threshold):
     'false_positive' : false_positive, 'false_negative' : false_negative}
 
 
-def CSI_score(output, target):
-
-    thresholds = [0.5, 2, 5, 10, 30]
-    csi_scores = {}
-
-    max_value = max(torch.max(output).item(), torch.max(target).item())
-
-    for thresh in thresholds:
-        if max_value > thresh:
-            conf_mat = compute_confusion_matrix(output, target, thresh)
-            csi_scores['csi_{}'.format(thresh)] = conf_mat['true_positive'] / (
-                                        conf_mat['true_positive'] + conf_mat['false_negative'] + conf_mat['false_positive'])
-
-        else:
-            csi_scores['csi_{}'.format(thresh)] = 'nan'
-
-    return csi_scores
-
-
 def save_pred_images(network, dataset, n_plots, output_dir, device):
 
     for k in range(n_plots):
@@ -96,7 +77,47 @@ def plot_output_gt(output, target, index, output_dir):
     plt.savefig(output_dir + str(index))
 
 
-def normalize_dictionnary_values(dictionnary, seen_values, decimal_n):
+def round_dictionnary_values(dictionnary, decimal_n):
     for key in dictionnary:
-        dictionnary[key] = round(dictionnary[key]/seen_values[key], decimal_n)
+        dictionnary[key].round(decimal_n)
     return dictionnary
+
+
+class CustomMetric():
+
+    def on_epoch_begin(self):
+        self.seen = 0
+        self.total = 0
+
+    def on_batch_end(self, metric_score):
+        self.seen += 1
+        self.total += metric_score
+
+    def on_epoch_end(self):
+        self.total = self.total / self.seen
+
+    def round(self, decimal_n):
+        self.total = round(self.total, decimal_n)
+
+
+class CSI_Score(CustomMetric):
+    def __init__(self, threshold):
+        self.threshold = threshold
+
+    def compute_metric(self, output, target):
+        max_value = max(torch.max(output).item(), torch.max(target).item())
+        if max_value > self.threshold:
+            conf_mat = compute_confusion_matrix(output, target, self.threshold)
+            metric_score = conf_mat['true_positive'] / (
+                                        conf_mat['true_positive'] + conf_mat['false_negative'] + conf_mat['false_positive'])
+            self.on_batch_end(metric_score)
+
+
+def build_metrics_dict(thresholds):
+    metrics = {'train' : {}, 'val': {}}
+
+    for thresh in thresholds:
+        metrics['train']['csi_score_' + str(thresh)] = CSI_Score(thresh)
+        metrics['val']['csi_score_' + str(thresh)] = CSI_Score(thresh)
+
+    return metrics
