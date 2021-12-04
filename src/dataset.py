@@ -31,20 +31,24 @@ class MeteoDataset(Dataset):
         path_files = [os.path.join(self.rain_dir, file_name) for file_name in files_names_i]
 
         # Create a sequence of input rain maps.
-        rain_map = np.load(path_files[0])['arr_0']
+        rain_map = np.load(path_files[0])
+        rain_map = rain_map[rain_map.files[0]]
         rain_map = torch.unsqueeze(torch.from_numpy(rain_map).float(), dim=0)
         rain_sequence_data = rain_map
         for k in range(1, self.input_length):
-            rain_map = np.load(path_files[k])['arr_0']
+            rain_map = np.load(path_files[k])
+            rain_map = rain_map[rain_map.files[0]]
             rain_map = torch.unsqueeze(torch.from_numpy(rain_map).float(), dim=0)
             rain_sequence_data = torch.cat((rain_sequence_data, rain_map), dim=0)
 
         # Create a sequence of target rain maps.
-        rain_map = np.load(path_files[self.output_length])['arr_0']
+        rain_map = np.load(path_files[self.output_length])
+        rain_map = rain_map[rain_map.files[0]]
         rain_map = torch.unsqueeze(torch.from_numpy(rain_map).float(), dim=0)
         rain_sequence_target = rain_map
         for k in range(self.input_length + 1, self.output_length + self.input_length):
-            rain_map = np.load(path_files[k])['arr_0']
+            rain_map = np.load(path_files[k])
+            rain_map = rain_map[rain_map.files[0]]
             rain_map = torch.unsqueeze(torch.from_numpy(rain_map).float(), dim=0)
             rain_sequence_target = torch.cat((rain_sequence_target, rain_map), dim=0)
 
