@@ -94,7 +94,8 @@ class CustomMetric():
         self.total += metric_score
 
     def on_epoch_end(self):
-        self.total = self.total / self.seen
+        if self.seen > 0:
+            self.total = self.total / self.seen
 
     def round(self, decimal_n):
         self.total = round(self.total, decimal_n)
