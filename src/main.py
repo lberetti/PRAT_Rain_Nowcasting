@@ -136,3 +136,4 @@ if __name__ == '__main__':
                     log_dir=log_dir,
                     print_metric_logs=args.print_metric_logs
                     )
+    torch.save(network, log_dir + '/model.pth')
