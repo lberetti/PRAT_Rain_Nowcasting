@@ -38,18 +38,18 @@ def compute_weight_mask(target):
     #return mask
 
 
-def compute_confusion_matrix(output, target, threshold):
+def compute_confusion_matrix_on_batch(output, target, threshold):
 
     # Computing this tensor helps to compute the confusion matrix much more easily.
     difference = 2*torch.where(output >= threshold, 1.0, 0.0) - torch.where(target >= threshold, 1.0, 0.0)
     # True positive
-    true_positive = torch.sum(difference==1).item()
+    true_positive = torch.sum(difference==1, dim=(0, 2, 3)).tolist()
     # True negative
-    true_negative = torch.sum(difference==0).item()
+    true_negative = torch.sum(difference==0, dim=(0, 2, 3)).tolist()
     # False positive
-    false_positive = torch.sum(difference==2).item()
+    false_positive = torch.sum(difference==2, dim=(0, 2, 3)).tolist()
     # False negative
-    false_negative = torch.sum(difference==-1).item()
+    false_negative = torch.sum(difference==-1, dim=(0, 2, 3)).tolist()
 
     return {'true_positive' : true_positive, 'true_negative' : true_negative,
     'false_positive' : false_positive, 'false_negative' : false_negative}
@@ -80,48 +80,59 @@ def plot_output_gt(output, target, index, output_dir):
     plt.savefig(output_dir + str(index))
 
 
-def round_dictionnary_values(dictionnary, decimal_n):
-    for key in dictionnary:
-        dictionnary[key].round(decimal_n)
-    return dictionnary
+def add_confusion_matrix_on_batch(confusion_matrix, confusion_matrix_on_batch, threshold):
+
+    for key in confusion_matrix_on_batch:
+        for time_step in range(len(confusion_matrix_on_batch[key])):
+            confusion_matrix[str(threshold)][key][time_step] += confusion_matrix_on_batch[key][time_step]
+    return confusion_matrix
 
 
-class CustomMetric():
+def model_evaluation(confusion_matrix):
+    scores = {}
+    for thresh_key in confusion_matrix:
+        scores[thresh_key] = {}
+        scores[thresh_key]['f1_score'] = {}
+        scores[thresh_key]['ts_score'] = {}
+        scores[thresh_key]['bias_score'] = {}
+        #scores[thresh_key]['CSI_score'] = {}
+        for time_step in range(len(confusion_matrix[thresh_key]['true_positive'])):
+            scores[thresh_key]['f1_score']["t+"+str(time_step+1)] = compute_f1_score(confusion_matrix[thresh_key], time_step)
+            scores[thresh_key]['ts_score']["t+"+str(time_step+1)] = compute_ts_score(confusion_matrix[thresh_key], time_step)
+            scores[thresh_key]['bias_score']["t+"+str(time_step+1)] = compute_bias_score(confusion_matrix[thresh_key], time_step)
+            #scores[thresh_key]['CSI_score'][time_step] = compute_csi_score(confusion_matrix[thresh_key], time_step)
+    return scores
 
-    def on_epoch_begin(self):
-        self.seen = 0
-        self.total = 0
+def compute_f1_score(conf_mat, time_step):
 
-    def on_batch_end(self, metric_score):
-        self.seen += 1
-        self.total += metric_score
+    precision = conf_mat['true_positive'][time_step] / (
+                                conf_mat['true_positive'][time_step] + conf_mat['false_positive'][time_step])
+    recall = conf_mat['true_positive'][time_step] / (
+                                conf_mat['true_positive'][time_step] + conf_mat['false_negative'][time_step])
+    metric_score = 2 * precision * recall / (precision + recall)
 
-    def on_epoch_end(self):
-        if self.seen > 0:
-            self.total = self.total / self.seen
-
-    def round(self, decimal_n):
-        self.total = round(self.total, decimal_n)
-
-
-class CSI_Score(CustomMetric):
-    def __init__(self, threshold):
-        self.threshold = threshold
-
-    def compute_metric(self, output, target):
-        max_value = max(torch.max(output).item(), torch.max(target).item())
-        if max_value > self.threshold:
-            conf_mat = compute_confusion_matrix(output, target, self.threshold)
-            metric_score = conf_mat['true_positive'] / (
-                                        conf_mat['true_positive'] + conf_mat['false_negative'] + conf_mat['false_positive'])
-            self.on_batch_end(metric_score)
+    return round(metric_score, 3)
 
 
-def build_metrics_dict(thresholds):
-    metrics = {'train' : {}, 'val': {}}
+def compute_ts_score(conf_mat, time_step):
 
-    for thresh in thresholds:
-        metrics['train']['csi_score_' + str(thresh)] = CSI_Score(thresh)
-        metrics['val']['csi_score_' + str(thresh)] = CSI_Score(thresh)
+    metric_score = conf_mat['true_positive'][time_step] / (
+                        conf_mat['true_positive'][time_step] + conf_mat['false_positive'][time_step] + conf_mat['false_negative'][time_step])
 
-    return metrics
+    return round(metric_score, 3)
+
+
+def compute_bias_score(conf_mat, time_step):
+
+    metric_score = conf_mat['true_positive'][time_step] + conf_mat['false_positive'][time_step] / (
+                                conf_mat['true_positive'][time_step] + conf_mat['false_negative'][time_step])
+
+    return round(metric_score, 3)
+
+
+def compute_csi_score(conf_mat, time_step):
+
+    metric_score = conf_mat['true_positive'][time_step] / (
+                                conf_mat['true_positive'][time_step] + conf_mat['false_negative'][time_step] + conf_mat['false_positive'][time_step])
+
+    return round(metric_score, 3)

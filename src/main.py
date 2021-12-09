@@ -26,11 +26,14 @@ def train_network(network, input_length, output_length, epochs, batch_size, devi
     optimizer = torch.optim.Adam(network.parameters(), lr=10**-4)
     #criterion = torch.nn.MSELoss()
 
-    thresholds = [0.5, 2, 5, 10, 30]
-    metrics = build_metrics_dict(thresholds)
-
+    thresholds = [0.1, 1, 2.5]
 
     for epoch in range(epochs):
+
+        confusion_matrix = {}
+        for thresh in thresholds:
+            confusion_matrix[str(thresh)] = {'true_positive' : [0]*output_length, 'true_negative' : [0]*output_length,
+            'false_positive' : [0]*output_length, 'false_negative' : [0]*output_length}
 
         network.train()
         training_loss = 0.0
@@ -38,10 +41,6 @@ def train_network(network, input_length, output_length, epochs, batch_size, devi
 
         loop = tqdm(train_dataloader)
         loop.set_description(f"Epoch {epoch+1}/{epochs}")
-
-        for key in metrics['train']:
-            metrics['train'][key].on_epoch_begin()
-            metrics['val'][key].on_epoch_begin()
 
         for batch_idx, sample in enumerate(loop):
             inputs, targets = sample['input'], sample['target']
@@ -59,16 +58,6 @@ def train_network(network, input_length, output_length, epochs, batch_size, devi
 
             loop.set_postfix({'Train Loss' : training_loss})
 
-            for key in metrics['train']:
-                metrics['train'][key].compute_metric(outputs, targets)
-
-        for key in metrics['train']:
-            metrics['train'][key].on_epoch_end()
-        metrics['train'] = round_dictionnary_values(metrics['train'], 3)
-
-        if print_metric_logs:
-            print("[Train] metrics_scores : ", {k: v.total for k, v in metrics['train'].items()})
-
         network.eval()
 
         for sample in valid_dataloader:
@@ -81,25 +70,27 @@ def train_network(network, input_length, output_length, epochs, batch_size, devi
             #loss = criterion(outputs, targets)
             validation_loss += loss.item() / n_examples_valid
 
-            for key in metrics['val']:
-                metrics['val'][key].compute_metric(outputs, targets)
+            for thresh in thresholds:
+                conf_mat_batch = compute_confusion_matrix_on_batch(outputs, targets, thresh)
+                confusion_matrix = add_confusion_matrix_on_batch(confusion_matrix, conf_mat_batch, thresh)
 
-        for key in metrics['val']:
-            metrics['val'][key].on_epoch_end()
-        metrics['val'] = round_dictionnary_values(metrics['val'], 3)
+        scores_evaluation = model_evaluation(confusion_matrix)
 
         print(f"[Validation] Loss : {validation_loss:.2f}")
+
         if print_metric_logs:
-            print("[Validation] metrics_scores : ", {k: v.total for k, v in metrics['val'].items()})
+            print("[Validation] metrics_scores : ", scores_evaluation)
         print("\n")
 
         writer.add_scalar('Loss/train', training_loss, epoch)
         writer.add_scalar('Loss/test', validation_loss, epoch)
 
-        for key in metrics['train']:
-            writer.add_scalar(key + '/train', metrics['train'][key].total, epoch)
-        for key in metrics['val']:
-            writer.add_scalar(key + '/valid', metrics['val'][key].total, epoch)
+        for thresh_key in scores_evaluation:
+            for metric_key in scores_evaluation[thresh_key]:
+                for time_step in scores_evaluation[thresh_key][metric_key]:
+                    writer.add_scalar(metric_key + "_" + thresh_key + "_time_step_" + time_step,
+                                        scores_evaluation[thresh_key][metric_key][time_step],
+                                        epoch)
 
 
     if save_pred:
@@ -125,8 +116,8 @@ if __name__ == '__main__':
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f'Using device {device}')
-    #network = cnn_2D(input_length=args.input_length, output_length=args.output_length, filter_number=70)
-    network = UNet(input_length=args.input_length, output_length=args.output_length, filter_number=16)
+    network = cnn_2D(input_length=args.input_length, output_length=args.output_length, filter_number=16)
+    #network = UNet(input_length=args.input_length, output_length=args.output_length, filter_number=16)
     summary(network, input_size=(12, 128, 128), device='cpu')
     network.to(device=device)
     train_network(network, input_length=args.input_length,
