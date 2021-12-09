@@ -28,11 +28,14 @@ def compute_weight_mask(target):
         mask = torch.where((threshold[k] <= target) & (target < threshold[k+1]), weights[k], mask)
     """
 
+    ### Fix for small gpu below
     return torch.where((0 <= target) & (target < 2), 1., 0.) \
     + torch.where((2 <= target) & (target < 5), 2., 0.) \
     + torch.where((5 <= target) & (target < 10), 5., 0.) \
     + torch.where((10 <= target) & (target < 30), 10., 0.) \
     + torch.where((30 <= target), 30., 0.)
+
+    #return mask
 
 
 def compute_confusion_matrix(output, target, threshold):

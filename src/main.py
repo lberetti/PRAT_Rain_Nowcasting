@@ -4,7 +4,7 @@ from torchsummary import summary
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-from model import cnn_2D
+from model import cnn_2D, UNet
 from dataset import MeteoDataset
 from utils import *
 
@@ -125,7 +125,8 @@ if __name__ == '__main__':
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f'Using device {device}')
-    network = cnn_2D(input_length=args.input_length, output_length=args.output_length, filter_number=70)
+    #network = cnn_2D(input_length=args.input_length, output_length=args.output_length, filter_number=70)
+    network = UNet(input_length=args.input_length, output_length=args.output_length, filter_number=16)
     summary(network, input_size=(12, 128, 128), device='cpu')
     network.to(device=device)
     train_network(network, input_length=args.input_length,

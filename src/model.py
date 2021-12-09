@@ -3,6 +3,72 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+class UNet(nn.Module):
+
+    def __init__(self, input_length, output_length, filter_number=16):
+        super(UNet, self).__init__()
+
+        self.conv_1_1 = Conv(input_length, filter_number)
+        self.conv_1_2 = Conv(filter_number, filter_number)
+        self.down_1 = Down_Block(filter_number, filter_number*2)
+        self.down_2 = Down_Block(filter_number*2, filter_number*4)
+        self.down_3 = Down_Block(filter_number*4, filter_number*8)
+        self.down_4 = Down_Block(filter_number*8, filter_number*16)
+
+        self.up_1 = Up_Block(16*filter_number, 8*filter_number)
+        self.up_2 = Up_Block(8*filter_number, 4*filter_number)
+        self.up_3 = Up_Block(4*filter_number, 2*filter_number)
+        self.up_4 = Up_Block(2*filter_number, filter_number)
+
+        self.out = nn.Conv2d(filter_number, output_length, kernel_size=1)
+
+
+    def forward(self, x):
+
+        x = self.conv_1_1(x)
+        x_1 = self.conv_1_2(x)
+        x_2 = self.down_1(x_1)
+        x_3 = self.down_2(x_2)
+        x_4 = self.down_3(x_3)
+        x_5 = self.down_4(x_4)
+
+        x = self.up_1(x_5, x_4)
+        x = self.up_2(x, x_3)
+        x = self.up_3(x, x_2)
+        x = self.up_4(x, x_1)
+
+        x = self.out(x)
+
+        return x
+
+
+class Down_Block(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(Down_Block, self).__init__()
+        self.max_pool = nn.MaxPool2d(2)
+        self.conv_1 = Conv(in_channels, out_channels, kernel_size=3, stride=1, padding=1)
+        self.conv_2 = Conv(out_channels, out_channels, kernel_size=3, stride=1, padding=1)
+
+    def forward(self, x):
+        x = self.max_pool(x)
+        x = self.conv_1(x)
+        x = self.conv_2(x)
+        return x
+
+class Up_Block(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(Up_Block, self).__init__()
+        self.conv_transpose = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
+        self.conv_1 = Conv(in_channels, out_channels, kernel_size=3, stride=1, padding=1)
+        self.conv_2 = Conv(out_channels, out_channels, kernel_size=3, stride=1, padding=1)
+
+    def forward(self, x_1, x_2):
+        x_1 = self.conv_transpose(x_1)
+        x = torch.cat([x_1, x_2], dim=1)
+        x = self.conv_1(x)
+        x = self.conv_2(x)
+        return x
+
 class cnn_2D(nn.Module):
 
     def __init__(self, input_length, output_length, filter_number):
