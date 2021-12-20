@@ -135,5 +135,6 @@ if __name__ == '__main__':
                     batch_size=args.batch_size,
                     device=device,
                     log_dir=log_dir,
+                    save_pred=args.save_preds,
                     print_metric_logs=args.print_metric_logs
                     )

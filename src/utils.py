@@ -18,17 +18,17 @@ def filter_one_week_over_two_for_eval(idx):
 def missing_file_in_sequence(files_names):
 
     for k in range(len(files_names)-1):
-        day_1, hour_1, min_1 = get_date_from_file_name(files_names[k])[1:]
-        day_2, hour_2, min_2 = get_date_from_file_name(files_names[k+1])[1:]
+        month_1, day_1, hour_1, min_1 = get_date_from_file_name(files_names[k])[1:]
+        month_2, day_2, hour_2, min_2 = get_date_from_file_name(files_names[k+1])[1:]
 
         if (min_1 + 5) % 60 != min_2:
-            print("Min gap : ", files_names, "\n")
+            #print("Min gap : ", files_names, "\n")
             return True
         if (hour_1 + 1) % 24 != hour_2 and (min_1 == 55 and min_2 == 0):
-            print("Hour gap : ", files_names, "\n")
+            #print("Hour gap : ", files_names, "\n")
             return True
         if day_1 != day_2 and day_1 + 1 != day_2 and not ((day_1 == 30 and day_2 == 1) or (day_1 == 31 and day_2 == 1) or (month_1 == 2 and (day_1 == 28 or day_1 == 29) and day_2 == 1)):
-            print("Day gap : ", files_names, "\n")
+            #print("Day gap : ", files_names, "\n")
             return True
 
 
@@ -97,16 +97,16 @@ def plot_output_gt(output, target, input, index, output_dir):
     input = input.cpu().detach().numpy()
 
     #fig, axs = plt.subplots(2, output.shape[0], figsize=(15, 6))
-    fig, axs = plt.subplots(2, 7, figsize=(15, 6))
-    for k in range(4):
-        axs[k//2][k%2].imshow(input[8+k], cmap='gray')
-        axs[k//2][k%2].title.set_text('Input at t - {}'.format(5*(3-k)))
+    fig, axs = plt.subplots(3, 5, figsize=(15, 6))
+    for k in range(5):
+        axs[0][k].imshow(input[7+k], cmap='gray')
+        axs[0][k].title.set_text('Input at t - {}'.format(5*(4-k)))
     #for k in range(output.shape[0]):
     for k in range(5):
-        axs[0][k+2].imshow(output[2*k], cmap='gray')
-        axs[1][k+2].imshow(target[2*k], cmap='gray')
-        axs[0][k+2].title.set_text('Pred at t + {}'.format(5*(2*k+2)))
-        axs[1][k+2].title.set_text('GT at t + {}'.format(5*(2*k+2)))
+        axs[1][k].imshow(output[2*k], cmap='gray')
+        axs[2][k].imshow(target[2*k], cmap='gray')
+        axs[1][k].title.set_text('Pred at t + {}'.format(5*(2*k+2)))
+        axs[2][k].title.set_text('GT at t + {}'.format(5*(2*k+2)))
     plt.savefig(output_dir + str(index))
 
 
@@ -154,7 +154,7 @@ def compute_ts_score(conf_mat, time_step):
 
 def compute_bias_score(conf_mat, time_step):
 
-    metric_score = conf_mat['true_positive'][time_step] + conf_mat['false_positive'][time_step] / (
+    metric_score = (conf_mat['true_positive'][time_step] + conf_mat['false_positive'][time_step]) / (
                                 conf_mat['true_positive'][time_step] + conf_mat['false_negative'][time_step])
 
     return round(metric_score, 3)
