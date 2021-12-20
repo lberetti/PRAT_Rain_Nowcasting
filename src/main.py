@@ -13,17 +13,24 @@ def train_network(network, input_length, output_length, epochs, batch_size, devi
 
     writer = SummaryWriter(log_dir)
 
-    train = MeteoDataset(rain_dir='../../Data/MeteoNet-Brest/rainmap/train', input_length=input_length,  output_length=output_length)
-    val = MeteoDataset(rain_dir='../../Data/MeteoNet-Brest/rainmap/val', input_length=input_length, output_length=output_length)
+    train = MeteoDataset(rain_dir='../../Data/MeteoNet-Brest/rainmap/train', input_length=input_length,  output_length=output_length, temporal_stride=input_length, dataset='train')
+    train_sampler = CustomSampler(indices_except_undefined_sampler(train), train)
+    val = MeteoDataset(rain_dir='../../Data/MeteoNet-Brest/rainmap/val', input_length=input_length, output_length=output_length, temporal_stride=input_length, dataset='valid')
+    val_sampler = CustomSampler(indices_except_undefined_sampler(val), val)
+
+    print("Len train dataset : ", len(train))
+    print("Len val dataset : ", len(val))
 
     n_examples_train = len(train)
     n_examples_valid = len(val)
 
-    train_dataloader = DataLoader(train, batch_size=batch_size, shuffle=True)
-    valid_dataloader = DataLoader(val, batch_size=batch_size, shuffle=True)
+    train_dataloader = DataLoader(train, batch_size=batch_size, sampler=train_sampler)
+    valid_dataloader = DataLoader(val, batch_size=batch_size, sampler=val_sampler)
 
+    print("Len_dataloader_train : ", len(train_dataloader))
+    print("Len_dataloader_valid : ", len(valid_dataloader))
 
-    optimizer = torch.optim.Adam(network.parameters(), lr=10**-4)
+    optimizer = torch.optim.Adam(network.parameters(), lr=10**-4, weight_decay=10**-5)
     #criterion = torch.nn.MSELoss()
 
     thresholds = [0.1, 1, 2.5]
@@ -92,6 +99,8 @@ def train_network(network, input_length, output_length, epochs, batch_size, devi
                                         scores_evaluation[thresh_key][metric_key][time_step],
                                         epoch)
 
+        torch.save(network, log_dir + '/model_{}.pth'.format(epoch+1))
+
 
     if save_pred:
         os.mkdir(log_dir + '/images')
@@ -128,4 +137,3 @@ if __name__ == '__main__':
                     log_dir=log_dir,
                     print_metric_logs=args.print_metric_logs
                     )
-    torch.save(network, log_dir + '/model.pth')

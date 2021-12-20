@@ -2,12 +2,37 @@ import os
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
+from torch.utils.data.sampler import Sampler
+from tqdm import tqdm
 
 def get_date_from_file_name(filename):
 
     date_infos = [int(val[1:]) for val in filename.split('/')[-1].split('.')[0].split('-')]
     return date_infos
 
+def filter_one_week_over_two_for_eval(idx):
+
+    samples_per_week = 12*24*7
+    return (idx // samples_per_week) % 2
+
+def missing_file_in_sequence(files_names):
+
+    for k in range(len(files_names)-1):
+        day_1, hour_1, min_1 = get_date_from_file_name(files_names[k])[1:]
+        day_2, hour_2, min_2 = get_date_from_file_name(files_names[k+1])[1:]
+
+        if (min_1 + 5) % 60 != min_2:
+            print("Min gap : ", files_names, "\n")
+            return True
+        if (hour_1 + 1) % 24 != hour_2 and (min_1 == 55 and min_2 == 0):
+            print("Hour gap : ", files_names, "\n")
+            return True
+        if day_1 != day_2 and day_1 + 1 != day_2 and not ((day_1 == 30 and day_2 == 1) or (day_1 == 31 and day_2 == 1) or (month_1 == 2 and (day_1 == 28 or day_1 == 29) and day_2 == 1)):
+            print("Day gap : ", files_names, "\n")
+            return True
+
+
+    return False
 
 def weighted_mse_loss(output, target, weight_mask):
     return torch.sum(torch.multiply(weight_mask, (output - target) ** 2))
@@ -29,11 +54,10 @@ def compute_weight_mask(target):
     """
 
     ### Fix for small gpu below
-    return torch.where((0 <= target) & (target < 2), 1., 0.) \
-    + torch.where((2 <= target) & (target < 5), 2., 0.) \
-    + torch.where((5 <= target) & (target < 10), 5., 0.) \
-    + torch.where((10 <= target) & (target < 30), 10., 0.) \
-    + torch.where((30 <= target), 30., 0.)
+    return torch.where((0 <= target) & (target < 0.1), 1., 0.) \
+    + torch.where((0.1 <= target) & (target < 1), 2., 0.) \
+    + torch.where((1 <= target) & (target < 2.5), 4., 0.) \
+    + torch.where((2.5 <= target), 8., 0.)
 
     #return mask
 
@@ -63,20 +87,26 @@ def save_pred_images(network, dataset, n_plots, output_dir, device):
         input = data['input']
         target = data['target']
         pred = network.forward(input.unsqueeze(0).to(device=device))
-        plot_output_gt(pred[0], target, k, output_dir)
+        plot_output_gt(pred[0], target, input, k, output_dir)
 
 
-def plot_output_gt(output, target, index, output_dir):
+def plot_output_gt(output, target, input, index, output_dir):
 
     output = output.cpu().detach().numpy()
     target = target.cpu().detach().numpy()
+    input = input.cpu().detach().numpy()
 
-    fig, axs = plt.subplots(2, output.shape[0], figsize=(15, 6))
-    for k in range(output.shape[0]):
-        axs[0][k].imshow(output[k], cmap='gray')
-        axs[1][k].imshow(target[k], cmap='gray')
-        axs[0][k].title.set_text('Pred at t + {}'.format(5*(k+1)))
-        axs[1][k].title.set_text('GT at t + {}'.format(5*(k+1)))
+    #fig, axs = plt.subplots(2, output.shape[0], figsize=(15, 6))
+    fig, axs = plt.subplots(2, 7, figsize=(15, 6))
+    for k in range(4):
+        axs[k//2][k%2].imshow(input[8+k], cmap='gray')
+        axs[k//2][k%2].title.set_text('Input at t - {}'.format(5*(3-k)))
+    #for k in range(output.shape[0]):
+    for k in range(5):
+        axs[0][k+2].imshow(output[2*k], cmap='gray')
+        axs[1][k+2].imshow(target[2*k], cmap='gray')
+        axs[0][k+2].title.set_text('Pred at t + {}'.format(5*(2*k+2)))
+        axs[1][k+2].title.set_text('GT at t + {}'.format(5*(2*k+2)))
     plt.savefig(output_dir + str(index))
 
 
@@ -136,3 +166,49 @@ def compute_csi_score(conf_mat, time_step):
                                 conf_mat['true_positive'][time_step] + conf_mat['false_negative'][time_step] + conf_mat['false_positive'][time_step])
 
     return round(metric_score, 3)
+
+
+class CustomSampler(Sampler):
+    """
+    Draws all element of indices one time and in the given order
+    """
+
+    def __init__(self, alist, dataset):
+        """
+        Parameters
+        ----------
+        alist : list
+            Composed of True False for keep or reject position.
+        """
+        self.__alist___ = alist
+        self.indices = [k for k in range(len(alist)) if alist[k]]
+        self.dataset = dataset
+
+    def __iter__(self):
+        return iter(self.indices)
+
+    def __len__(self):
+        return len(self.indices)
+
+
+def indices_except_undefined_sampler(dataset):
+
+    samples_weight = []
+
+    for i in tqdm(range(len(dataset))):
+        condition_meet = True
+
+        dataset_item_i = dataset.__getitem__(i)
+        inputs, targets = dataset_item_i["input"], dataset_item_i["target"]
+
+        # If the last image of the input sequence contains no rain, we don't take into account the sequence
+        if torch.max(inputs[-1]).item() == 0:
+            condition_meet = False
+
+        if torch.min(inputs).item() < 0 or torch.min(targets).item() < 0:
+            condition_meet = False
+
+        if condition_meet:
+            samples_weight.append(i)
+
+    return samples_weight
