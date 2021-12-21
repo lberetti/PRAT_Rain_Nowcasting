@@ -4,7 +4,9 @@ from torchsummary import summary
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-from model import cnn_2D, UNet
+
+from models.u_net import UNet
+from models.naive_cnn import cnn_2D
 from dataset import MeteoDataset
 from utils import *
 

@@ -96,19 +96,21 @@ def plot_output_gt(output, target, input, index, output_dir):
     target = target.cpu().detach().numpy()
     input = input.cpu().detach().numpy()
 
+    min_value = min(np.min(output), np.min(input), np.min(target))
+    max_value = max(np.max(output), np.max(input), np.max(target))
+
     #fig, axs = plt.subplots(2, output.shape[0], figsize=(15, 6))
-    fig, axs = plt.subplots(3, 5, figsize=(15, 6))
+    fig, axs = plt.subplots(3, 5, figsize=(15, 9))
     for k in range(5):
-        axs[0][k].imshow(input[7+k], cmap='gray')
+        axs[0][k].imshow(input[7+k], cmap='gray', vmin=min_value, vmax=max_value)
         axs[0][k].title.set_text('Input at t - {}'.format(5*(4-k)))
     #for k in range(output.shape[0]):
     for k in range(5):
-        axs[1][k].imshow(output[2*k], cmap='gray')
-        axs[2][k].imshow(target[2*k], cmap='gray')
+        axs[1][k].imshow(output[2*k], cmap='gray', vmin=min_value, vmax=max_value)
+        axs[2][k].imshow(target[2*k], cmap='gray', vmin=min_value, vmax=max_value)
         axs[1][k].title.set_text('Pred at t + {}'.format(5*(2*k+2)))
         axs[2][k].title.set_text('GT at t + {}'.format(5*(2*k+2)))
     plt.savefig(output_dir + str(index))
-
 
 def add_confusion_matrix_on_batch(confusion_matrix, confusion_matrix_on_batch, threshold):
 
