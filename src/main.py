@@ -7,6 +7,7 @@ from tqdm import tqdm
 
 from models.u_net import UNet
 from models.naive_cnn import cnn_2D
+from models.traj_gru import TrajGRU
 from dataset import MeteoDataset
 from utils import *
 
@@ -127,9 +128,10 @@ if __name__ == '__main__':
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f'Using device {device}')
-    network = cnn_2D(input_length=args.input_length, output_length=args.output_length, filter_number=16)
+    network = TrajGRU(device=device)
+    #network = cnn_2D(input_length=args.input_length, output_length=args.output_length, filter_number=16)
     #network = UNet(input_length=args.input_length, output_length=args.output_length, filter_number=16)
-    summary(network, input_size=(12, 128, 128), device='cpu')
+    #summary(network, input_size=(12, 1, 128, 128), device='cpu')
     network.to(device=device)
     train_network(network, input_length=args.input_length,
                     output_length=args.output_length,
