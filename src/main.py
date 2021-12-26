@@ -12,13 +12,23 @@ from dataset import MeteoDataset
 from utils import *
 
 
-def train_network(network, input_length, output_length, epochs, batch_size, device, log_dir, save_pred=False, print_metric_logs=False):
+def train_network(network, input_length, output_length, epochs, batch_size, device, log_dir, save_pred=False, print_metric_logs=False, recurrent_nn=False):
 
     writer = SummaryWriter(log_dir)
 
-    train = MeteoDataset(rain_dir='../../Data/MeteoNet-Brest/rainmap/train', input_length=input_length,  output_length=output_length, temporal_stride=input_length, dataset='train')
+    train = MeteoDataset(rain_dir='../../Data/MeteoNet-Brest/rainmap/train',
+                        input_length=input_length,
+                        output_length=output_length,
+                        temporal_stride=input_length,
+                        dataset='train',
+                        recurrent_nn=recurrent_nn)
     train_sampler = CustomSampler(indices_except_undefined_sampler(train), train)
-    val = MeteoDataset(rain_dir='../../Data/MeteoNet-Brest/rainmap/val', input_length=input_length, output_length=output_length, temporal_stride=input_length, dataset='valid')
+    val = MeteoDataset(rain_dir='../../Data/MeteoNet-Brest/rainmap/val',
+                        input_length=input_length,
+                        output_length=output_length,
+                        temporal_stride=input_length,
+                        dataset='valid',
+                        recurrent_nn=recurrent_nn)
     val_sampler = CustomSampler(indices_except_undefined_sampler(val), val)
 
     print("Len train dataset : ", len(train))
@@ -85,7 +95,6 @@ def train_network(network, input_length, output_length, epochs, batch_size, devi
                 confusion_matrix = add_confusion_matrix_on_batch(confusion_matrix, conf_mat_batch, thresh)
 
         scores_evaluation = model_evaluation(confusion_matrix)
-
         print(f"[Validation] Loss : {validation_loss:.2f}")
 
         if print_metric_logs:
@@ -102,8 +111,11 @@ def train_network(network, input_length, output_length, epochs, batch_size, devi
                                         scores_evaluation[thresh_key][metric_key][time_step],
                                         epoch)
 
+        """torch.save({'epoch' : epoch + 1,
+                    'model_state_dict' : network.state_dict(),
+                    'optimizer_state_dict' : optimizer.state_dict()},
+                    log_dir + '/model_{}.pth'.format(epoch+1))"""
         torch.save(network, log_dir + '/model_{}.pth'.format(epoch+1))
-
 
     if save_pred:
         os.mkdir(log_dir + '/images')
@@ -118,6 +130,7 @@ if __name__ == '__main__':
     parser.add_argument('--output_length', type=int, default=5, help="The number of time steps predicted by the NN")
     parser.add_argument('--save_preds', action='store_true', help='If we want to save some predictions according to the ground truth.')
     parser.add_argument('--print_metric_logs', action='store_true', help='If we want to print the metrics score while training')
+    parser.add_argument('--recurrent_nn', action='store_true', help='If the model to train is recurrent')
 
     args = parser.parse_args()
 
@@ -127,11 +140,12 @@ if __name__ == '__main__':
 
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    #device = torch.device('cpu')
     print(f'Using device {device}')
-    network = TrajGRU(device=device)
-    #network = cnn_2D(input_length=args.input_length, output_length=args.output_length, filter_number=16)
+    #network = TrajGRU(device=device)
+    network = cnn_2D(input_length=args.input_length, output_length=args.output_length, filter_number=16)
     #network = UNet(input_length=args.input_length, output_length=args.output_length, filter_number=16)
-    #summary(network, input_size=(12, 1, 128, 128), device='cpu')
+    summary(network, input_size=(12, 128, 128), device='cpu')
     network.to(device=device)
     train_network(network, input_length=args.input_length,
                     output_length=args.output_length,
@@ -140,5 +154,6 @@ if __name__ == '__main__':
                     device=device,
                     log_dir=log_dir,
                     save_pred=args.save_preds,
-                    print_metric_logs=args.print_metric_logs
+                    print_metric_logs=args.print_metric_logs,
+                    recurrent_nn=args.recurrent_nn
                     )

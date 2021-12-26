@@ -64,16 +64,23 @@ def compute_weight_mask(target):
 
 def compute_confusion_matrix_on_batch(output, target, threshold):
 
+    # Case of a RNN
+    if len(target.shape) == 5:
+        # sum on batch_size, channels(1), height, width
+        dimension_reshape = (0, 2, 3, 4)
+    else:
+        dimension_reshape = (0, 2, 3)
+
     # Computing this tensor helps to compute the confusion matrix much more easily.
     difference = 2*torch.where(output >= threshold, 1.0, 0.0) - torch.where(target >= threshold, 1.0, 0.0)
     # True positive
-    true_positive = torch.sum(difference==1, dim=(0, 2, 3)).tolist()
+    true_positive = torch.sum(difference==1, dim=dimension_reshape).tolist()
     # True negative
-    true_negative = torch.sum(difference==0, dim=(0, 2, 3)).tolist()
+    true_negative = torch.sum(difference==0, dim=dimension_reshape).tolist()
     # False positive
-    false_positive = torch.sum(difference==2, dim=(0, 2, 3)).tolist()
+    false_positive = torch.sum(difference==2, dim=dimension_reshape).tolist()
     # False negative
-    false_negative = torch.sum(difference==-1, dim=(0, 2, 3)).tolist()
+    false_negative = torch.sum(difference==-1, dim=dimension_reshape).tolist()
 
     return {'true_positive' : true_positive, 'true_negative' : true_negative,
     'false_positive' : false_positive, 'false_negative' : false_negative}
@@ -96,6 +103,12 @@ def plot_output_gt(output, target, input, index, output_dir):
     target = target.cpu().detach().numpy()
     input = input.cpu().detach().numpy()
 
+    if len(target.shape) == 4:
+        output = output.squeeze(1)
+        target = target.squeeze(1)
+        input = input.squeeze(1)
+
+
     min_value = min(np.min(output), np.min(input), np.min(target))
     max_value = max(np.max(output), np.max(input), np.max(target))
 
@@ -111,6 +124,7 @@ def plot_output_gt(output, target, input, index, output_dir):
         axs[1][k].title.set_text('Pred at t + {}'.format(5*(2*k+2)))
         axs[2][k].title.set_text('GT at t + {}'.format(5*(2*k+2)))
     plt.savefig(output_dir + str(index))
+
 
 def add_confusion_matrix_on_batch(confusion_matrix, confusion_matrix_on_batch, threshold):
 

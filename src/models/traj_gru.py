@@ -42,8 +42,6 @@ class TrajGRU(nn.Module):
         output = F.relu(self.out_conv(output))
         output = torch.reshape(output, (output.size(0) // self.sequence_length, self.sequence_length, output.size(1), output.size(2), output.size(3)))
 
-        print("Final output size : {}".format(output.size()))
-
         return output
 
 
