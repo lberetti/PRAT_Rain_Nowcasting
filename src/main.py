@@ -43,12 +43,19 @@ def train_network(network, input_length, output_length, epochs, batch_size, devi
     print("Len_dataloader_train : ", len(train_dataloader))
     print("Len_dataloader_valid : ", len(valid_dataloader))
 
-    optimizer = torch.optim.Adam(network.parameters(), lr=10**-4, weight_decay=10**-5)
+    optimizer = torch.optim.Adam(network.parameters(), lr=8*10**-4, weight_decay=10**-5)
     #criterion = torch.nn.MSELoss()
 
     thresholds = [0.1, 1, 2.5]
 
     for epoch in range(epochs):
+
+        if epoch > 4:
+            for g in optimizer.param_groups:
+                g['lr'] = 10**-4
+        if epoch > 15:
+            for g in optimizer.param_groups:
+                g['lr'] = 10**-5
 
         confusion_matrix = {}
         for thresh in thresholds:
@@ -139,13 +146,13 @@ if __name__ == '__main__':
         raise Exception("Path {} already exists".format(log_dir))
 
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    #device = torch.device('cpu')
+    #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cpu')
     print(f'Using device {device}')
-    #network = TrajGRU(device=device)
-    network = cnn_2D(input_length=args.input_length, output_length=args.output_length, filter_number=16)
+    network = TrajGRU(device=device)
+    #network = cnn_2D(input_length=args.input_length, output_length=args.output_length, filter_number=16)
     #network = UNet(input_length=args.input_length, output_length=args.output_length, filter_number=16)
-    summary(network, input_size=(12, 128, 128), device='cpu')
+    #summary(network, input_size=(12, 128, 128), device='cpu')
     network.to(device=device)
     train_network(network, input_length=args.input_length,
                     output_length=args.output_length,
