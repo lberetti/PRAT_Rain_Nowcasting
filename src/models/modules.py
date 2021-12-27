@@ -46,7 +46,7 @@ class TrajGRU_cell(nn.Module):
                               padding=(2, 2))
 
         # Convolutional layer for the warp data convolution (weights for projecting the channels)
-        self.wrap_conv = nn.Conv2d(in_channels=hidden_filters*L,
+        self.warp_conv = nn.Conv2d(in_channels=hidden_filters*L,
                                   out_channels=hidden_filters*3,
                                   kernel_size=(1, 1),
                                   stride=(1, 1))
@@ -70,7 +70,7 @@ class TrajGRU_cell(nn.Module):
         return flows_output
 
 
-    def wrap(self, input, flow):
+    def warp(self, input, flow):
         batch_size, channels, height, width = input.size()
         # mesh grid
         x = torch.arange(0, width).view(1, -1).repeat(height, 1)
@@ -81,8 +81,8 @@ class TrajGRU_cell(nn.Module):
         vgrid = grid.to(self.device) + flow
 
         # scale grid to [-1,1]
-        vgrid[:, 0, :, :] = 2.0 * vgrid[:, 0, :, :] / width - 1.0
-        vgrid[:, 1, :, :] = 2.0 * vgrid[:, 1, :, :] / height - 1.0
+        vgrid[:, 0, :, :] = 2.0 * vgrid[:, 0, :, :] / (width - 1) - 1.0
+        vgrid[:, 1, :, :] = 2.0 * vgrid[:, 1, :, :] / (height - 1) - 1.0
         vgrid = vgrid.permute(0, 2, 3, 1)
         output = torch.nn.functional.grid_sample(input.to(self.device), vgrid)
         return output
@@ -111,11 +111,11 @@ class TrajGRU_cell(nn.Module):
             else:
                 flows_o = self.flow_generator(None, previous_h)
 
-            wrapped_data = []
+            warpped_data = []
             for i in range(len(flows_o)):
-                wrapped_data.append(self.wrap(previous_h, -flows_o[i]))
-            wrapped_data = torch.cat(wrapped_data, dim=1)
-            h2h_output = self.wrap_conv(wrapped_data)
+                warpped_data.append(self.warp(previous_h, -flows_o[i]))
+            warpped_data = torch.cat(warpped_data, dim=1)
+            h2h_output = self.warp_conv(warpped_data)
 
             reset_gate_h2h, update_gate_h2h, new_info_gate_h2h = torch.split(h2h_output, self.hidden_filters, dim=1)
 
