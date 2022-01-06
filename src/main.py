@@ -1,6 +1,6 @@
 import torch
 import argparse
-from torchsummary import summary
+#from torchsummary import summary
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
@@ -43,19 +43,34 @@ def train_network(network, input_length, output_length, epochs, batch_size, devi
     print("Len_dataloader_train : ", len(train_dataloader))
     print("Len_dataloader_valid : ", len(valid_dataloader))
 
-    optimizer = torch.optim.Adam(network.parameters(), lr=8*10**-4, weight_decay=10**-5)
+    lr = 10**-3
+    wd = 0.1
+    optimizer = torch.optim.Adam(network.parameters(), lr=lr, weight_decay=wd)
     #criterion = torch.nn.MSELoss()
+    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[30, 60], gamma=0.1)
 
     thresholds = [0.1, 1, 2.5]
 
+    info = f'''Starting training:
+        Epochs:                {epochs},
+        Learning rate:         {lr},
+        Batch size:            {batch_size},
+        Weight decay:          {wd},
+        Number batch train :   {len(train_dataloader)},
+        Number batch val :     {len(valid_dataloader)},
+        Scheduler :            Gamma 0.1 epochs 10, 20, 30
+    '''
+    writer.add_text('Description', info)
+
+
     for epoch in range(epochs):
 
-        if epoch > 4:
-            for g in optimizer.param_groups:
-                g['lr'] = 10**-4
-        if epoch > 15:
+        """if epoch > 10:
             for g in optimizer.param_groups:
                 g['lr'] = 10**-5
+        if epoch > 20:
+            for g in optimizer.param_groups:
+                g['lr'] = 10**-6"""
 
         confusion_matrix = {}
         for thresh in thresholds:
@@ -69,6 +84,8 @@ def train_network(network, input_length, output_length, epochs, batch_size, devi
         loop = tqdm(train_dataloader)
         loop.set_description(f"Epoch {epoch+1}/{epochs}")
 
+        writer.add_scalar('LR : ', scheduler.get_last_lr()[0], epoch)
+
         for batch_idx, sample in enumerate(loop):
             inputs, targets = sample['input'], sample['target']
             inputs = inputs.to(device=device)
@@ -76,14 +93,23 @@ def train_network(network, input_length, output_length, epochs, batch_size, devi
             optimizer.zero_grad()
             outputs = network(inputs)
             mask = compute_weight_mask(targets)
-            loss = weighted_mse_loss(outputs, targets, mask) + weighted_mae_loss(outputs, targets, mask)
+            loss = 0.00005*(weighted_mse_loss(outputs, targets, mask) + weighted_mae_loss(outputs, targets, mask))
             #loss = criterion(outputs, targets)
             loss.backward()
             optimizer.step()
 
             training_loss += loss.item() / n_examples_train
 
+            #print("Network weight i2f : ", network.traj_gru_5.i2f.weight)
+            #print("Network grad i2f : ", network.traj_gru_5.i2f.weight.grad)
+            #print("Network weight h2f : ", network.traj_gru_5.h2f.weight)
+            #print("Network grad h2f : ", network.traj_gru_5.h2f.weight.grad)
+            #print("Network weight flows : ", network.traj_gru_5.flows.weight)
+            #print("Network grad flows : ", network.traj_gru_5.flows.weight.grad)
+
             loop.set_postfix({'Train Loss' : training_loss})
+
+        scheduler.step()
 
         network.eval()
 
@@ -93,7 +119,7 @@ def train_network(network, input_length, output_length, epochs, batch_size, devi
             targets = targets.to(device=device)
             outputs = network(inputs)
             mask = compute_weight_mask(targets)
-            loss = weighted_mse_loss(outputs, targets, mask) + weighted_mae_loss(outputs, targets, mask)
+            loss = 0.00005*(weighted_mse_loss(outputs, targets, mask) + weighted_mae_loss(outputs, targets, mask))
             #loss = criterion(outputs, targets)
             validation_loss += loss.item() / n_examples_valid
 
@@ -101,20 +127,23 @@ def train_network(network, input_length, output_length, epochs, batch_size, devi
                 conf_mat_batch = compute_confusion_matrix_on_batch(outputs, targets, thresh)
                 confusion_matrix = add_confusion_matrix_on_batch(confusion_matrix, conf_mat_batch, thresh)
 
-        scores_evaluation = model_evaluation(confusion_matrix)
-        print(f"[Validation] Loss : {validation_loss:.2f}")
-
-        if print_metric_logs:
-            print("[Validation] metrics_scores : ", scores_evaluation)
-        print("\n")
 
         writer.add_scalar('Loss/train', training_loss, epoch)
         writer.add_scalar('Loss/test', validation_loss, epoch)
+        print(f"[Validation] Loss : {validation_loss:.2f}")
 
-        for thresh_key in scores_evaluation:
-            for metric_key in scores_evaluation[thresh_key]:
-                for time_step in scores_evaluation[thresh_key][metric_key]:
-                    writer.add_scalar(metric_key + "_" + thresh_key + "_time_step_" + time_step,
+        if epoch > 4:
+            scores_evaluation = model_evaluation(confusion_matrix)
+
+            if print_metric_logs:
+                print("[Validation] metrics_scores : ", scores_evaluation)
+            print("\n")
+
+
+            for thresh_key in scores_evaluation:
+                for metric_key in scores_evaluation[thresh_key]:
+                    for time_step in scores_evaluation[thresh_key][metric_key]:
+                        writer.add_scalar(metric_key + "_" + thresh_key + "_time_step_" + time_step,
                                         scores_evaluation[thresh_key][metric_key][time_step],
                                         epoch)
 
@@ -147,7 +176,8 @@ if __name__ == '__main__':
 
 
     #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    device = torch.device('cpu')
+    #device = torch.device('cpu')
+    device = torch.device('cuda:0')
     print(f'Using device {device}')
     network = TrajGRU(device=device)
     #network = cnn_2D(input_length=args.input_length, output_length=args.output_length, filter_number=16)

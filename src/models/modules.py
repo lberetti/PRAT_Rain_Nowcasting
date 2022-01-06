@@ -14,6 +14,8 @@ class TrajGRU_cell(nn.Module):
         self.sequence_length = sequence_length
         self.hidden_filters = hidden_filters
 
+        self.activation = torch.nn.LeakyReLU(negative_slope=0.2, inplace=True)
+
         # Input size + padding
         self.state_height = input_size[1]
         self.state_width = input_size[2]
@@ -60,9 +62,9 @@ class TrajGRU_cell(nn.Module):
         h2f_output = self.h2f(states.to(self.device))
 
         if inputs is not None:
-            flows_output = torch.tanh(i2f_output + h2f_output)
+            flows_output = self.activation(i2f_output + h2f_output)
         else:
-            flows_output = torch.tanh(h2f_output)
+            flows_output = self.activation(h2f_output)
 
         flows_output = self.flows(flows_output)
         flows_output = torch.split(flows_output, 2, dim=1)
@@ -130,9 +132,9 @@ class TrajGRU_cell(nn.Module):
                 update_gate = torch.sigmoid(update_gate_h2h)
 
             if new_info_gate_i2h is not None:
-                new_info_gate = torch.sigmoid(new_info_gate_i2h[:, k, ...] + reset_gate*new_info_gate_h2h)
+                new_info_gate = self.activation(new_info_gate_i2h[:, k, ...] + reset_gate*new_info_gate_h2h)
             else:
-                new_info_gate = torch.sigmoid(reset_gate*new_info_gate_h2h)
+                new_info_gate = self.activation(reset_gate*new_info_gate_h2h)
 
             h = (1 - update_gate) * new_info_gate + update_gate * previous_h
             outputs.append(h)
