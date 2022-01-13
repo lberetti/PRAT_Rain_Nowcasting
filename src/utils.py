@@ -4,6 +4,7 @@ import torch
 import matplotlib.pyplot as plt
 from torch.utils.data.sampler import Sampler
 from tqdm import tqdm
+from PIL import Image
 
 def get_date_from_file_name(filename):
 
@@ -55,9 +56,9 @@ def compute_weight_mask(target):
 
     ### Fix for small gpu below
     return torch.where((0 <= target) & (target < 0.1), 1., 0.) \
-    + torch.where((0.1 <= target) & (target < 1), 2., 0.) \
-    + torch.where((1 <= target) & (target < 2.5), 4., 0.) \
-    + torch.where((2.5 <= target), 8., 0.)
+    + torch.where((0.1 <= target) & (target < 1), 1.5, 0.) \
+    + torch.where((1 <= target) & (target < 2.5), 2., 0.) \
+    + torch.where((2.5 <= target), 3., 0.)
 
     #return mask
 
@@ -86,17 +87,6 @@ def compute_confusion_matrix_on_batch(output, target, threshold):
     'false_positive' : false_positive, 'false_negative' : false_negative}
 
 
-def save_pred_images(network, dataset, n_plots, output_dir, device):
-
-    for k in range(n_plots):
-        idx = np.random.randint(0, len(dataset))
-        data = dataset.__getitem__(idx)
-        input = data['input']
-        target = data['target']
-        pred = network.forward(input.unsqueeze(0).to(device=device))
-        plot_output_gt(pred[0], target, input, k, output_dir)
-
-
 def plot_output_gt(output, target, input, index, output_dir):
 
     output = output.cpu().detach().numpy()
@@ -109,22 +99,43 @@ def plot_output_gt(output, target, input, index, output_dir):
         input = input.squeeze(1)
 
 
-    min_value = min(np.min(output), np.min(input), np.min(target))
-    max_value = max(np.max(output), np.max(input), np.max(target))
+    min_value = min(np.min(output), np.min(input[7:]), np.min(target))
+    max_value = max(np.max(output), np.max(input[7:]), np.max(target))
 
-    #fig, axs = plt.subplots(2, output.shape[0], figsize=(15, 6))
     fig, axs = plt.subplots(3, 5, figsize=(15, 9))
     for k in range(5):
-        axs[0][k].imshow(input[7+k], cmap='gray', vmin=min_value, vmax=max_value)
+        im = axs[0][k].imshow(input[7+k], cmap='gray', vmin=min_value, vmax=max_value)
         axs[0][k].title.set_text('Input at t - {}'.format(5*(4-k)))
-    #for k in range(output.shape[0]):
+
     for k in range(5):
         axs[1][k].imshow(output[2*k], cmap='gray', vmin=min_value, vmax=max_value)
         axs[2][k].imshow(target[2*k], cmap='gray', vmin=min_value, vmax=max_value)
         axs[1][k].title.set_text('Pred at t + {}'.format(5*(2*k+2)))
         axs[2][k].title.set_text('GT at t + {}'.format(5*(2*k+2)))
+
+    fig.subplots_adjust(right=0.8)
+    cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+    fig.colorbar(im, cax=cbar_ax)
+
     plt.savefig(output_dir + str(index))
 
+def save_gif(single_seq, fname):
+    if len(single_seq.shape) == 4:
+        single_seq = single_seq.permute((0, 2, 3, 1))
+        single_seq = torch.squeeze(single_seq, -1)
+    single_seq = single_seq.cpu().detach().numpy()
+    single_seq_masked = rain_map_thresholded(single_seq)
+    img_seq = [Image.fromarray((img*255).astype(np.uint8), 'RGB') for img in single_seq_masked]
+    img = img_seq[0]
+    img.save(fname, save_all=True, append_images=img_seq[1:], duration=500, loop=0)
+
+
+def rain_map_thresholded(single_seq):
+    single_seq_masked = np.zeros((single_seq.shape[0], single_seq.shape[1], single_seq.shape[2], 3))
+    single_seq_masked[:, :, :, 1] = np.where((0.1 < single_seq) & (single_seq < 1.), 1., 0.)
+    single_seq_masked[:, :, :, 2] = np.where((1. < single_seq) & (single_seq < 2.5), 1., 0.)
+    single_seq_masked[:, :, :, 0] = np.where((2.5 < single_seq), 1., 0.)
+    return single_seq_masked
 
 def add_confusion_matrix_on_batch(confusion_matrix, confusion_matrix_on_batch, threshold):
 
@@ -196,8 +207,7 @@ class CustomSampler(Sampler):
         alist : list
             Composed of True False for keep or reject position.
         """
-        self.__alist___ = alist
-        self.indices = [k for k in range(len(alist)) if alist[k]]
+        self.indices = alist
         self.dataset = dataset
 
     def __iter__(self):
@@ -218,7 +228,7 @@ def indices_except_undefined_sampler(dataset):
         inputs, targets = dataset_item_i["input"], dataset_item_i["target"]
 
         # If the last image of the input sequence contains no rain, we don't take into account the sequence
-        if torch.max(inputs[-1]).item() == 0:
+        if torch.max(inputs[-1]).item() < 0.001:
             condition_meet = False
 
         if torch.min(inputs).item() < 0 or torch.min(targets).item() < 0:
