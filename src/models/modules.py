@@ -145,6 +145,72 @@ class TrajGRU_cell(nn.Module):
         return outputs, h
 
 
+class ConvGRU_cell(nn.Module):
+
+    def __init__(self, input_size, hidden_filters, sequence_length, device):
+
+        super(ConvGRU_cell, self).__init__()
+
+        self.sequence_length = sequence_length
+        self.hidden_filters = hidden_filters
+        self.state_height = input_size[1]
+        self.state_width = input_size[2]
+        self.device = device
+
+        self.activation = torch.nn.LeakyReLU(negative_slope=0.2)
+
+        self.gates_input = nn.Conv2d(in_channels=input_size[0],
+                             out_channels=3*hidden_filters,
+                             kernel_size=(3, 3),
+                             padding=(1, 1))
+
+        self.gates_state = nn.Conv2d(in_channels=hidden_filters,
+                             out_channels=3*hidden_filters,
+                             kernel_size=(3, 3),
+                             padding=(1, 1))
+
+
+    def forward(self, inputs, state):
+
+        if state is None:
+            state = torch.zeros((inputs.size(0), self.hidden_filters, self.state_height, self.state_width)).to(self.device)
+
+        if inputs is not None:
+            batch_size, sequence_length, channels, height, width = inputs.size()
+            output = self.gates_input(torch.reshape(inputs, (-1, channels, height, width)))
+            output = torch.reshape(output, (batch_size, sequence_length, output.size(1), output.size(2), output.size(3)))
+            reset_gate, update_gate, new_info_gate = torch.split(output, self.hidden_filters, dim=2)
+
+        else:
+            reset_gate, update_gate, new_info_gate = None, None, None
+
+        outputs = []
+        for k in range(self.sequence_length):
+
+            state_output = self.gates_state(state)
+            reset_state, update_state, new_info_state = torch.split(state_output, self.hidden_filters, dim=1)
+
+            if reset_gate is not None:
+                reset = torch.sigmoid(reset_gate[:, k, ...] + reset_state)
+            else:
+                reset = torch.sigmoid(reset_state)
+
+            if update_gate is not None:
+                update = torch.sigmoid(update_gate[:, k, ...] + update_state)
+            else:
+                update = torch.sigmoid(update_state)
+
+            if new_info_gate is not None:
+                new_memory = self.activation(new_info_gate[:, k, ...] + new_info_state)
+            else:
+                new_memory = self.activation(new_info_state)
+
+            state = (1 - update) * new_memory + update * state
+            outputs.append(state)
+
+        outputs = torch.stack(outputs, dim=1)
+
+        return outputs, state
 
 
 class Down_Block(nn.Module):
