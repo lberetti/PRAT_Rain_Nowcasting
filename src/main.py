@@ -11,6 +11,7 @@ from models.traj_gru import TrajGRU
 from models.conv_gru import ConvGRU
 from dataset import MeteoDataset
 from utils import *
+from sampler import *
 
 
 def train_network(network, input_length, output_length, epochs, batch_size, device, log_dir, print_metric_logs=False, recurrent_nn=False, wind=False):

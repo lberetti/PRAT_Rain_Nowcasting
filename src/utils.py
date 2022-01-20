@@ -2,7 +2,6 @@ import os
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
-from torch.utils.data.sampler import Sampler
 from tqdm import tqdm
 from PIL import Image
 
@@ -24,40 +23,15 @@ def filter_year(filename, dataset):
 
 def keep_wind_when_rainmap_exists(rainmap_list, U_wind_list, V_wind_list):
 
-    rain_map_new_L, U_wind_new_L, V_wind_new_L = [], [], []
+    rain_map_new_L = []
 
     for k in tqdm(range(len(rainmap_list))):
         if rainmap_list[k] in U_wind_list and rainmap_list[k] in V_wind_list:
 
             # All repertories have the same file names.
             rain_map_new_L.append(rainmap_list[k])
-            U_wind_new_L.append(rainmap_list[k])
-            V_wind_new_L.append(rainmap_list[k])
 
-    return rain_map_new_L, U_wind_new_L, V_wind_new_L
-
-
-def sanity_check(rain_files_names, U_wind_files_names, V_wind_files_names):
-
-    """if not (len(rain_files_names) == len(U_wind_files_names) and len(rain_files_names) == len(V_wind_files_names)):
-         print("Error : dimension mismatch")
-         return"""
-
-    print(len(rain_files_names))
-    print(len(U_wind_files_names))
-    print(len(V_wind_files_names))
-
-    for k in range(len(rain_files_names)):
-        date_infos_rain = get_date_from_file_name(rain_files_names[k])
-        U_wind_infos_rain = get_date_from_file_name(U_wind_files_names[k])
-        V_wind_infos_rain = get_date_from_file_name(V_wind_files_names[k])
-
-        if not (date_infos_rain == U_wind_infos_rain and date_infos_rain == V_wind_infos_rain):
-            print("Error")
-            print(rain_files_names[k])
-            print(U_wind_files_names[k])
-            print(V_wind_files_names[k])
-            return
+    return rain_map_new_L
 
 
 def filter_one_week_over_two_for_eval(idx):
@@ -242,51 +216,3 @@ def compute_csi_score(conf_mat, time_step):
                                 conf_mat['true_positive'][time_step] + conf_mat['false_negative'][time_step] + conf_mat['false_positive'][time_step])
 
     return round(metric_score, 3)
-
-
-class CustomSampler(Sampler):
-    """
-    Draws all element of indices one time and in the given order
-    """
-
-    def __init__(self, alist, dataset):
-        """
-        Parameters
-        ----------
-        alist : list
-            Composed of True False for keep or reject position.
-        """
-        self.indices = alist
-        self.dataset = dataset
-
-    def __iter__(self):
-        return iter(self.indices)
-
-    def __len__(self):
-        return len(self.indices)
-
-
-def indices_except_undefined_sampler(dataset):
-
-    """ Currently adapted for recurrent nn with wind """
-    # TODO : adapt it to all configs
-
-    samples_weight = []
-
-    for i in tqdm(range(len(dataset))):
-        condition_meet = True
-
-        dataset_item_i = dataset.__getitem__(i)
-        inputs, targets = dataset_item_i["input"], dataset_item_i["target"]
-
-        # If the last image of the input sequence contains no rain, we don't take into account the sequence
-        if torch.max(inputs[-1, 0]).item() < 0.001:
-            condition_meet = False
-
-        if torch.min(inputs[:, 0, :, :]).item() < 0 or torch.min(targets).item() < 0:
-            condition_meet = False
-
-        if condition_meet:
-            samples_weight.append(i)
-
-    return samples_weight

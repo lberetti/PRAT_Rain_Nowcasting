@@ -25,7 +25,7 @@ class MeteoDataset(Dataset):
 
         # Get and filter rain data
         self.rain_files_names = [f for f in os.listdir(rain_dir)]
-        self.rain_files_names = sorted(self.rain_files_names, key=lambda x: get_date_from_file_name(x))
+        self.rain_files_names = sorted(self.rain_files_names, key=lambda x: get_date_from_file_name(x))[:20000]
 
         if dataset == 'valid':
             self.rain_files_names = [val for (idx, val) in enumerate(self.rain_files_names) if filter_one_week_over_two_for_eval(idx) == 0]
@@ -36,24 +36,26 @@ class MeteoDataset(Dataset):
         # Get and filter wind data
         if wind_dir != None:
             self.U_wind_files_names = [f for f in os.listdir(wind_dir + '/U')]
-            self.U_wind_files_names = [val for val in self.U_wind_files_names if filter_year(val, dataset)]
-            #self.U_wind_files_names = sorted(self.U_wind_files_names, key=lambda x: get_date_from_file_name(x))
+            self.U_wind_files_names = [val for val in self.U_wind_files_names if filter_year(val, dataset)][:20000]
 
             self.V_wind_files_names = [f for f in os.listdir(wind_dir + '/V')]
-            self.V_wind_files_names = [val for val in self.V_wind_files_names if filter_year(val, dataset)]
-            #self.V_wind_files_names = sorted(self.V_wind_files_names, key=lambda x: get_date_from_file_name(x))
+            self.V_wind_files_names = [val for val in self.V_wind_files_names if filter_year(val, dataset)][:20000]
 
         self.normalization = 100/12
 
 
         if wind_dir != None:
-            self.rain_files_names, self.U_wind_files_names, self.V_wind_files_names = keep_wind_when_rainmap_exists(self.rain_files_names,
-                                                                                                                    self.U_wind_files_names,
-                                                                                                                    self.V_wind_files_names)
+            # All repertories have the same file names
+            self.files_names = keep_wind_when_rainmap_exists(self.rain_files_names,
+                                                             self.U_wind_files_names,
+                                                             self.V_wind_files_names)
+        else:
+            self.files_names = self.rain_files_names
+
 
         self.indices = []
-        for i in range((len(self.rain_files_names)  - self.input_length - self.output_length) // self.temporal_stride + 1):
-            sequence = self.rain_files_names[self.temporal_stride * i : self.temporal_stride * i + self.input_length + self.output_length]
+        for i in range((len(self.files_names) - self.input_length - self.output_length) // self.temporal_stride + 1):
+            sequence = self.files_names[self.temporal_stride * i : self.temporal_stride * i + self.input_length + self.output_length]
             if not missing_file_in_sequence(sequence):
                 self.indices += [i]
 
@@ -66,15 +68,12 @@ class MeteoDataset(Dataset):
 
         idx = self.indices[i]
 
-        rain_files_names_i = self.rain_files_names[self.temporal_stride * idx : self.temporal_stride * idx + self.input_length + self.output_length]
-        if self.wind_dir != None:
-            U_wind_files_names_i = self.U_wind_files_names[self.temporal_stride * idx : self.temporal_stride * idx + self.input_length + self.output_length]
-            V_wind_files_names_i = self.V_wind_files_names[self.temporal_stride * idx : self.temporal_stride * idx + self.input_length + self.output_length]
+        files_names_i = self.files_names[self.temporal_stride * idx : self.temporal_stride * idx + self.input_length + self.output_length]
 
-        rain_path_files = [os.path.join(self.rain_dir, file_name) for file_name in rain_files_names_i]
+        rain_path_files = [os.path.join(self.rain_dir, file_name) for file_name in files_names_i]
         if self.wind_dir != None:
-            U_wind_path_files = [os.path.join(self.wind_dir + '/U', u_wind) for u_wind in U_wind_files_names_i]
-            V_wind_path_files = [os.path.join(self.wind_dir + '/V', v_wind) for v_wind in V_wind_files_names_i]
+            U_wind_path_files = [os.path.join(self.wind_dir + '/U', u_wind) for u_wind in files_names_i]
+            V_wind_path_files = [os.path.join(self.wind_dir + '/V', v_wind) for v_wind in files_names_i]
 
         # Create a sequence of input maps (rain (and wind)).
         data_map = np.load(rain_path_files[0])
