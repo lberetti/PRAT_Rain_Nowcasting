@@ -8,27 +8,43 @@ from tqdm import tqdm
 from models.u_net import UNet
 from models.naive_cnn import cnn_2D
 from models.traj_gru import TrajGRU
+from models.conv_gru import ConvGRU
 from dataset import MeteoDataset
 from utils import *
 
 
-def train_network(network, input_length, output_length, epochs, batch_size, device, log_dir, save_pred=False, print_metric_logs=False, recurrent_nn=False):
+def train_network(network, input_length, output_length, epochs, batch_size, device, log_dir, print_metric_logs=False, recurrent_nn=False, wind=False):
 
     writer = SummaryWriter(log_dir)
 
+    if wind:
+        wind_dir = '../../Data/MeteoNet-Brest/wind'
+    else:
+        wind_dir = None
+
+    print("Building the train dataset ...")
+
     train = MeteoDataset(rain_dir='../../Data/MeteoNet-Brest/rainmap/train',
+                        wind_dir=wind_dir,
                         input_length=input_length,
                         output_length=output_length,
                         temporal_stride=input_length,
                         dataset='train',
                         recurrent_nn=recurrent_nn)
+
+    print("Sampling train dataset ...")
     train_sampler = CustomSampler(indices_except_undefined_sampler(train), train)
+
+    print("Building validation dataset ...")
     val = MeteoDataset(rain_dir='../../Data/MeteoNet-Brest/rainmap/val',
+                        wind_dir=wind_dir,
                         input_length=input_length,
                         output_length=output_length,
                         temporal_stride=input_length,
                         dataset='valid',
                         recurrent_nn=recurrent_nn)
+
+    print("Sampling validation dataset ...")
     val_sampler = CustomSampler(indices_except_undefined_sampler(val), val)
 
     print("Len train dataset : ", len(train))
@@ -37,16 +53,17 @@ def train_network(network, input_length, output_length, epochs, batch_size, devi
     n_examples_train = len(train)
     n_examples_valid = len(val)
 
+
     train_dataloader = DataLoader(train, batch_size=batch_size, sampler=train_sampler)
     valid_dataloader = DataLoader(val, batch_size=batch_size, sampler=val_sampler)
 
     print("Len_dataloader_train : ", len(train_dataloader))
     print("Len_dataloader_valid : ", len(valid_dataloader))
 
-    lr = 10**-3
+    lr = 10**-5
     wd = 0.1
     optimizer = torch.optim.Adam(network.parameters(), lr=lr, weight_decay=wd)
-    #criterion = torch.nn.MSELoss()
+
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[30, 60], gamma=0.1)
 
     thresholds = [0.1, 1, 2.5]
@@ -58,19 +75,12 @@ def train_network(network, input_length, output_length, epochs, batch_size, devi
         Weight decay:          {wd},
         Number batch train :   {len(train_dataloader)},
         Number batch val :     {len(valid_dataloader)},
-        Scheduler :            Gamma 0.1 epochs 10, 20, 30
+        Scheduler :            Gamma 0.1 epochs 30, 60
     '''
     writer.add_text('Description', info)
 
 
     for epoch in range(epochs):
-
-        """if epoch > 10:
-            for g in optimizer.param_groups:
-                g['lr'] = 10**-5
-        if epoch > 20:
-            for g in optimizer.param_groups:
-                g['lr'] = 10**-6"""
 
         confusion_matrix = {}
         for thresh in thresholds:
@@ -93,19 +103,11 @@ def train_network(network, input_length, output_length, epochs, batch_size, devi
             optimizer.zero_grad()
             outputs = network(inputs)
             mask = compute_weight_mask(targets)
-            loss = 0.00005*(weighted_mse_loss(outputs, targets, mask) + weighted_mae_loss(outputs, targets, mask))
-            #loss = criterion(outputs, targets)
+            loss = 0.0005*(weighted_mse_loss(outputs, targets, mask) + weighted_mae_loss(outputs, targets, mask))
             loss.backward()
             optimizer.step()
 
             training_loss += loss.item() / n_examples_train
-
-            #print("Network weight i2f : ", network.traj_gru_5.i2f.weight)
-            #print("Network grad i2f : ", network.traj_gru_5.i2f.weight.grad)
-            #print("Network weight h2f : ", network.traj_gru_5.h2f.weight)
-            #print("Network grad h2f : ", network.traj_gru_5.h2f.weight.grad)
-            #print("Network weight flows : ", network.traj_gru_5.flows.weight)
-            #print("Network grad flows : ", network.traj_gru_5.flows.weight.grad)
 
             loop.set_postfix({'Train Loss' : training_loss})
 
@@ -119,8 +121,7 @@ def train_network(network, input_length, output_length, epochs, batch_size, devi
             targets = targets.to(device=device)
             outputs = network(inputs)
             mask = compute_weight_mask(targets)
-            loss = 0.00005*(weighted_mse_loss(outputs, targets, mask) + weighted_mae_loss(outputs, targets, mask))
-            #loss = criterion(outputs, targets)
+            loss = 0.0005*(weighted_mse_loss(outputs, targets, mask) + weighted_mae_loss(outputs, targets, mask))
             validation_loss += loss.item() / n_examples_valid
 
             for thresh in thresholds:
@@ -132,6 +133,7 @@ def train_network(network, input_length, output_length, epochs, batch_size, devi
         writer.add_scalar('Loss/test', validation_loss, epoch)
         print(f"[Validation] Loss : {validation_loss:.2f}")
 
+        # Compute after epoch 4 to prevent division by 0 in some metrics
         if epoch > 4:
             scores_evaluation = model_evaluation(confusion_matrix)
 
@@ -147,16 +149,7 @@ def train_network(network, input_length, output_length, epochs, batch_size, devi
                                         scores_evaluation[thresh_key][metric_key][time_step],
                                         epoch)
 
-        """torch.save({'epoch' : epoch + 1,
-                    'model_state_dict' : network.state_dict(),
-                    'optimizer_state_dict' : optimizer.state_dict()},
-                    log_dir + '/model_{}.pth'.format(epoch+1))"""
         torch.save(network, log_dir + '/model_{}.pth'.format(epoch+1))
-
-    if save_pred:
-        os.mkdir(log_dir + '/images')
-        save_pred_images(network, val, n_plots=30, output_dir=log_dir + '/images/', device=device)
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -164,9 +157,9 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', default=8, type=int)
     parser.add_argument('--input_length', type=int, default=12, help="The number of time steps of a sequence as input of the NN")
     parser.add_argument('--output_length', type=int, default=5, help="The number of time steps predicted by the NN")
-    parser.add_argument('--save_preds', action='store_true', help='If we want to save some predictions according to the ground truth.')
     parser.add_argument('--print_metric_logs', action='store_true', help='If we want to print the metrics score while training')
     parser.add_argument('--recurrent_nn', action='store_true', help='If the model to train is recurrent')
+    parser.add_argument('--wind', action='store_true', help="If we want to use the wind")
 
     args = parser.parse_args()
 
@@ -179,7 +172,8 @@ if __name__ == '__main__':
     #device = torch.device('cpu')
     device = torch.device('cuda:0')
     print(f'Using device {device}')
-    network = TrajGRU(device=device)
+    network = ConvGRU(device=device, wind=args.wind)
+    #network = TrajGRU(device=device, wind=args.wind)
     #network = cnn_2D(input_length=args.input_length, output_length=args.output_length, filter_number=16)
     #network = UNet(input_length=args.input_length, output_length=args.output_length, filter_number=16)
     #summary(network, input_size=(12, 128, 128), device='cpu')
@@ -190,7 +184,7 @@ if __name__ == '__main__':
                     batch_size=args.batch_size,
                     device=device,
                     log_dir=log_dir,
-                    save_pred=args.save_preds,
                     print_metric_logs=args.print_metric_logs,
-                    recurrent_nn=args.recurrent_nn
+                    recurrent_nn=args.recurrent_nn,
+                    wind=args.wind
                     )

@@ -5,14 +5,19 @@ from models.modules import *
 
 class ConvGRU(nn.Module):
 
-    def __init__(self, device, input_length=12):
+    def __init__(self, device, wind, input_length=12):
 
         super(ConvGRU, self).__init__()
 
         self.sequence_length = input_length
         self.device = device
 
-        self.conv_1 = Conv(in_channels=1, out_channels=8, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+        if wind:
+            channels_input = 3
+        else:
+            channels_input = 1
+
+        self.conv_1 = Conv(in_channels=channels_input, out_channels=8, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
         self.conv_gru_1 = ConvGRU_cell(input_size=(8, 64, 64), hidden_filters=64, sequence_length=input_length, device=self.device)
         self.conv_2 = Conv(in_channels=64, out_channels=192, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
         self.conv_gru_2 = ConvGRU_cell(input_size=(192, 32, 32), hidden_filters=192, sequence_length=input_length, device=self.device)

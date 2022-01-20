@@ -11,6 +11,55 @@ def get_date_from_file_name(filename):
     date_infos = [int(val[1:]) for val in filename.split('/')[-1].split('.')[0].split('-')]
     return date_infos
 
+def filter_year(filename, dataset):
+
+    date_infos = get_date_from_file_name(filename)
+    year = date_infos[0]
+
+    if dataset == 'train':
+        return year == 2016 or year == 2017
+    elif dataset == 'valid' or dataset == 'test':
+        return year == 2018
+
+
+def keep_wind_when_rainmap_exists(rainmap_list, U_wind_list, V_wind_list):
+
+    rain_map_new_L, U_wind_new_L, V_wind_new_L = [], [], []
+
+    for k in tqdm(range(len(rainmap_list))):
+        if rainmap_list[k] in U_wind_list and rainmap_list[k] in V_wind_list:
+
+            # All repertories have the same file names.
+            rain_map_new_L.append(rainmap_list[k])
+            U_wind_new_L.append(rainmap_list[k])
+            V_wind_new_L.append(rainmap_list[k])
+
+    return rain_map_new_L, U_wind_new_L, V_wind_new_L
+
+
+def sanity_check(rain_files_names, U_wind_files_names, V_wind_files_names):
+
+    """if not (len(rain_files_names) == len(U_wind_files_names) and len(rain_files_names) == len(V_wind_files_names)):
+         print("Error : dimension mismatch")
+         return"""
+
+    print(len(rain_files_names))
+    print(len(U_wind_files_names))
+    print(len(V_wind_files_names))
+
+    for k in range(len(rain_files_names)):
+        date_infos_rain = get_date_from_file_name(rain_files_names[k])
+        U_wind_infos_rain = get_date_from_file_name(U_wind_files_names[k])
+        V_wind_infos_rain = get_date_from_file_name(V_wind_files_names[k])
+
+        if not (date_infos_rain == U_wind_infos_rain and date_infos_rain == V_wind_infos_rain):
+            print("Error")
+            print(rain_files_names[k])
+            print(U_wind_files_names[k])
+            print(V_wind_files_names[k])
+            return
+
+
 def filter_one_week_over_two_for_eval(idx):
 
     samples_per_week = 12*24*7
@@ -219,6 +268,9 @@ class CustomSampler(Sampler):
 
 def indices_except_undefined_sampler(dataset):
 
+    """ Currently adapted for recurrent nn with wind """
+    # TODO : adapt it to all configs
+
     samples_weight = []
 
     for i in tqdm(range(len(dataset))):
@@ -228,10 +280,10 @@ def indices_except_undefined_sampler(dataset):
         inputs, targets = dataset_item_i["input"], dataset_item_i["target"]
 
         # If the last image of the input sequence contains no rain, we don't take into account the sequence
-        if torch.max(inputs[-1]).item() < 0.001:
+        if torch.max(inputs[-1, 0]).item() < 0.001:
             condition_meet = False
 
-        if torch.min(inputs).item() < 0 or torch.min(targets).item() < 0:
+        if torch.min(inputs[:, 0, :, :]).item() < 0 or torch.min(targets).item() < 0:
             condition_meet = False
 
         if condition_meet:
