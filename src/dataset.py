@@ -25,7 +25,7 @@ class MeteoDataset(Dataset):
 
         # Get and filter rain data
         self.rain_files_names = [f for f in os.listdir(rain_dir)]
-        self.rain_files_names = sorted(self.rain_files_names, key=lambda x: get_date_from_file_name(x))[:20000]
+        self.rain_files_names = sorted(self.rain_files_names, key=lambda x: get_date_from_file_name(x))
 
         if dataset == 'valid':
             self.rain_files_names = [val for (idx, val) in enumerate(self.rain_files_names) if filter_one_week_over_two_for_eval(idx) == 0]
@@ -36,10 +36,10 @@ class MeteoDataset(Dataset):
         # Get and filter wind data
         if wind_dir != None:
             self.U_wind_files_names = [f for f in os.listdir(wind_dir + '/U')]
-            self.U_wind_files_names = [val for val in self.U_wind_files_names if filter_year(val, dataset)][:20000]
+            self.U_wind_files_names = [val for val in self.U_wind_files_names if filter_year(val, dataset)]
 
             self.V_wind_files_names = [f for f in os.listdir(wind_dir + '/V')]
-            self.V_wind_files_names = [val for val in self.V_wind_files_names if filter_year(val, dataset)][:20000]
+            self.V_wind_files_names = [val for val in self.V_wind_files_names if filter_year(val, dataset)]
 
         self.normalization = 100/12
 

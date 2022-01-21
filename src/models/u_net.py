@@ -9,17 +9,17 @@ class UNet(nn.Module):
     def __init__(self, input_length, output_length, filter_number=16):
         super(UNet, self).__init__()
 
-        self.conv_1_1 = Conv(input_length, filter_number)
-        self.conv_1_2 = Conv(filter_number, filter_number)
-        self.down_1 = Down_Block(filter_number, filter_number*2)
-        self.down_2 = Down_Block(filter_number*2, filter_number*4)
-        self.down_3 = Down_Block(filter_number*4, filter_number*8)
-        self.down_4 = Down_Block(filter_number*8, filter_number*16)
+        self.conv_1_1 = Conv(input_length, filter_number, bn=True)
+        self.conv_1_2 = Conv(filter_number, filter_number, bn=True)
+        self.down_1 = Down_Block(filter_number, filter_number*2, bn=True)
+        self.down_2 = Down_Block(filter_number*2, filter_number*4, bn=True)
+        self.down_3 = Down_Block(filter_number*4, filter_number*8, bn=True)
+        self.down_4 = Down_Block(filter_number*8, filter_number*16, bn=True)
 
-        self.up_1 = Up_Block(16*filter_number, 8*filter_number)
-        self.up_2 = Up_Block(8*filter_number, 4*filter_number)
-        self.up_3 = Up_Block(4*filter_number, 2*filter_number)
-        self.up_4 = Up_Block(2*filter_number, filter_number)
+        self.up_1 = Up_Block(16*filter_number, 8*filter_number, bn=True)
+        self.up_2 = Up_Block(8*filter_number, 4*filter_number, bn=True)
+        self.up_3 = Up_Block(4*filter_number, 2*filter_number, bn=True)
+        self.up_4 = Up_Block(2*filter_number, filter_number, bn=True)
 
         self.out = nn.Conv2d(filter_number, output_length, kernel_size=1)
 

@@ -2,11 +2,13 @@ import torch
 from torch.utils.data import DataLoader
 from dataset import MeteoDataset
 from utils import *
+from sampler import *
 import os
 import argparse
 from tqdm import tqdm
 
 from models.traj_gru import TrajGRU
+from models.conv_gru import ConvGRU
 from models.naive_cnn import cnn_2D
 from models.u_net import UNet
 
