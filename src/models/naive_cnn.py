@@ -5,9 +5,12 @@ from models.modules import *
 
 class cnn_2D(nn.Module):
 
-    def __init__(self, input_length, output_length, filter_number):
+    def __init__(self, input_length, output_length, filter_number, wind):
         super(cnn_2D, self).__init__()
 
+        if wind:
+            input_length = input_length * 3
+            
         self.enc1 = Conv(in_channels=input_length, out_channels=filter_number, kernel_size=(4, 4), stride=2, padding=1, bn=True)
         self.enc2 = Conv(in_channels=filter_number, out_channels=filter_number, kernel_size=(4, 4), stride=2, padding=1, bn=True)
         self.enc3 = Conv(in_channels=filter_number, out_channels=8*filter_number, kernel_size=(4, 4), stride=2, padding=1, bn=True)

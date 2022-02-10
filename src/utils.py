@@ -113,28 +113,31 @@ def compute_confusion_matrix_on_batch(output, target, threshold):
 def plot_output_gt(output, target, input, index, output_dir):
 
     output = output.cpu().detach().numpy()
+    output = rain_map_thresholded(output)
+    output = [Image.fromarray((img*255).astype(np.uint8), 'RGB') for img in output]
     target = target.cpu().detach().numpy()
+    target = rain_map_thresholded(target)
+    target = [Image.fromarray((img*255).astype(np.uint8), 'RGB') for img in target]
     input = input.cpu().detach().numpy()
+    input = rain_map_thresholded(input)
+    input = [Image.fromarray((img*255).astype(np.uint8), 'RGB') for img in input]
+
 
     if len(target.shape) == 4:
         output = output.squeeze(1)
         target = target.squeeze(1)
         input = input.squeeze(1)
 
-
-    min_value = min(np.min(output), np.min(input[7:]), np.min(target))
-    max_value = max(np.max(output), np.max(input[7:]), np.max(target))
-
     fig, axs = plt.subplots(3, 5, figsize=(15, 9))
     for k in range(5):
-        im = axs[0][k].imshow(input[7+k], cmap='gray', vmin=min_value, vmax=max_value)
+        im = axs[0][k].imshow(input[7+k])
         axs[0][k].title.set_text('Input at t - {}'.format(5*(4-k)))
 
     for k in range(5):
-        axs[1][k].imshow(output[2*k], cmap='gray', vmin=min_value, vmax=max_value)
-        axs[2][k].imshow(target[2*k], cmap='gray', vmin=min_value, vmax=max_value)
-        axs[1][k].title.set_text('Pred at t + {}'.format(5*(2*k+2)))
-        axs[2][k].title.set_text('GT at t + {}'.format(5*(2*k+2)))
+        axs[1][k].imshow(output[2*k])
+        axs[2][k].imshow(target[2*k])
+        axs[1][k].title.set_text('Pred at t + {}'.format(5*(2*k+1)))
+        axs[2][k].title.set_text('GT at t + {}'.format(5*(2*k+1)))
 
     fig.subplots_adjust(right=0.8)
     cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])

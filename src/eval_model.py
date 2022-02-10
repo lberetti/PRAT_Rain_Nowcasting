@@ -28,13 +28,14 @@ def main(path, device, epoch, save_preds):
     batch_size=4
 
     test = MeteoDataset(rain_dir='../../Data/MeteoNet-Brest/rainmap/val',
+                        wind_dir='../../Data/MeteoNet-Brest/wind',
                         input_length=input_length,
                         output_length=output_length,
                         temporal_stride=12,
                         dataset='test',
                         recurrent_nn=True)
 
-    test_sampler = CustomSampler(indices_except_undefined_sampler(test), test)
+    test_sampler = CustomSampler(indices_except_undefined_sampler(test, recurrent_nn, wind), test, wind=True)
     n_examples_test = len(test)
     test_dataloader = DataLoader(test, batch_size=batch_size, sampler=test_sampler)
 
@@ -58,7 +59,6 @@ def main(path, device, epoch, save_preds):
         outputs = network(inputs)
         mask = compute_weight_mask(targets)
         loss = weighted_mse_loss(outputs, targets, mask) + weighted_mae_loss(outputs, targets, mask)
-        #loss = criterion(outputs, targets)
         test_loss += loss.item() / n_examples_test
 
         for thresh in thresholds:

@@ -34,7 +34,7 @@ def train_network(network, input_length, output_length, epochs, batch_size, devi
                         recurrent_nn=recurrent_nn)
 
     print("Sampling train dataset ...")
-    train_sampler = CustomSampler(indices_except_undefined_sampler(train), train)
+    train_sampler = CustomSampler(indices_except_undefined_sampler(train, recurrent_nn, wind), train)
 
     print("Building validation dataset ...")
     val = MeteoDataset(rain_dir='../../Data/MeteoNet-Brest/rainmap/val',
@@ -46,7 +46,7 @@ def train_network(network, input_length, output_length, epochs, batch_size, devi
                         recurrent_nn=recurrent_nn)
 
     print("Sampling validation dataset ...")
-    val_sampler = CustomSampler(indices_except_undefined_sampler(val), val)
+    val_sampler = CustomSampler(indices_except_undefined_sampler(val, recurrent_nn, wind), val)
 
     print("Len train dataset : ", len(train))
     print("Len val dataset : ", len(val))
@@ -157,28 +157,31 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', default=100, type=int, help="The number of epochs used to train the network")
     parser.add_argument('--batch_size', default=8, type=int)
     parser.add_argument('--input_length', type=int, default=12, help="The number of time steps of a sequence as input of the NN")
-    parser.add_argument('--output_length', type=int, default=5, help="The number of time steps predicted by the NN")
+    parser.add_argument('--output_length', type=int, default=12, help="The number of time steps predicted by the NN")
     parser.add_argument('--print_metric_logs', action='store_true', help='If we want to print the metrics score while training')
-    parser.add_argument('--recurrent_nn', action='store_true', help='If the model to train is recurrent')
     parser.add_argument('--wind', action='store_true', help="If we want to use the wind")
-
+    parser.add_argument('--network', choices=['TrajGRU', 'ConvGRU', 'CNN2D'])
     args = parser.parse_args()
 
     log_dir = './runs/epochs_{}_batch_size_{}_IL_{}_OL_{}'.format(args.epochs, args.batch_size, args.input_length, args.output_length)
     if os.path.isdir(log_dir):
         raise Exception("Path {} already exists".format(log_dir))
 
-
-    #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    #device = torch.device('cpu')
-    device = torch.device('cuda:0')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f'Using device {device}')
-    network = ConvGRU(device=device, wind=args.wind)
-    #network = TrajGRU(device=device, wind=args.wind)
-    #network = cnn_2D(input_length=args.input_length, output_length=args.output_length, filter_number=16)
-    #network = UNet(input_length=args.input_length, output_length=args.output_length, filter_number=16)
-    #summary(network, input_size=(12, 128, 128), device='cpu')
+
+    if args.network == 'ConvGRU':
+        recurrent_nn = True
+        network = ConvGRU(device=device, wind=args.wind)
+    elif args.network == 'TrajGRU':
+        recurrent_nn = True
+        network = TrajGRU(device=device, wind=args.wind)
+    elif args.network == 'CNN2D':
+        recurrent_nn = False
+        network = cnn_2D(input_length=args.input_length, output_length=args.output_length, filter_number=16, wind=args.wind)
+
     network.to(device=device)
+
     train_network(network, input_length=args.input_length,
                     output_length=args.output_length,
                     epochs=args.epochs,
@@ -186,6 +189,6 @@ if __name__ == '__main__':
                     device=device,
                     log_dir=log_dir,
                     print_metric_logs=args.print_metric_logs,
-                    recurrent_nn=args.recurrent_nn,
+                    recurrent_nn=recurrent_nn,
                     wind=args.wind
                     )
