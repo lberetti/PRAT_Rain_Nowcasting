@@ -8,8 +8,7 @@ wind_dir = '../../Data/MeteoNet-Brest/wind'
 
 # Get and filter rain data
 rain_files_names = [f for f in os.listdir(rain_dir)]
-rain_files_names = sorted(rain_files_names, key=lambda x: get_date_from_file_name(x))[:10000]
-
+rain_files_names = sorted(rain_files_names, key=lambda x: get_date_from_file_name(x))
 # Get and filter rain data
 U_wind_files_names = [f for f in os.listdir(wind_dir + '/U')]
 U_wind_files_names = [val for val in U_wind_files_names if filter_year(val, 'train')]
