@@ -12,7 +12,7 @@ from models.conv_gru import ConvGRU
 from models.naive_cnn import cnn_2D
 from models.u_net import UNet
 
-def main(path, device, epoch, save_preds):
+def main(path, device, epoch):
 
     checkpoint = torch.load(path + '/model_{}.pth'.format(epoch), map_location=device)
     network = TrajGRU(device=device)
@@ -35,7 +35,7 @@ def main(path, device, epoch, save_preds):
                         dataset='test',
                         recurrent_nn=True)
 
-    test_sampler = CustomSampler(indices_except_undefined_sampler(test, recurrent_nn, wind), test, wind=True)
+    test_sampler = CustomSampler(indices_except_undefined_sampler(test, recurrent_nn=True, wind=True), test, wind=True)
     n_examples_test = len(test)
     test_dataloader = DataLoader(test, batch_size=batch_size, sampler=test_sampler)
 
@@ -83,7 +83,6 @@ if __name__ == "__main__":
     parser.add_argument('--model_path', type=str, help='The directory of the model')
     parser.add_argument('--cuda', action='store_true', help='If we want to use cuda')
     parser.add_argument('--epoch', type=int)
-    parser.add_argument('--save_preds', action='store_true')
     args = parser.parse_args()
 
     if args.cuda:
@@ -94,4 +93,4 @@ if __name__ == "__main__":
         device = torch.device('cpu')
     print(f'Using device {device}')
 
-    main(args.model_path, device, args.epoch, args.save_preds)
+    main(args.model_path, device, args.epoch)

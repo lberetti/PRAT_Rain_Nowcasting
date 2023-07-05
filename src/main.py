@@ -167,7 +167,7 @@ if __name__ == '__main__':
     if os.path.isdir(log_dir):
         raise Exception("Path {} already exists".format(log_dir))
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cpu')
     print(f'Using device {device}')
 
     if args.network == 'ConvGRU':
