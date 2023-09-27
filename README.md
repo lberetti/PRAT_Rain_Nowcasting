@@ -240,14 +240,14 @@ Without wind data, TrajGRU improves on ConvGRU, especially for classes 2 and 3. 
 
 <div align="center">
   <div align="center"> Example 1 </div>
-  <img src="./images/ex1_pred.gif" width="150"/>
-  <img src="./images/ex1_target.gif" width="150"/>
+  <img src="./images/ex1_pred.gif" width="200"/>
+  <img src="./images/ex1_target.gif" width="200"/>
 </div>
 
 <div align="center">
   <div align="center"> Example 2 </div>
-  <img src="./images/ex2_pred.gif" width="150"/>
-  <img src="./images/ex2_target.gif" width="150"/>
+  <img src="./images/ex2_pred.gif" width="200"/>
+  <img src="./images/ex2_target.gif" width="200"/>
 </div>
 
 On the left, the prediction made by the TrajGRU model, on the right, the ground truth.
