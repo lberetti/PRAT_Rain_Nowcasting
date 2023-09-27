@@ -22,7 +22,9 @@ We have studied whether the use of a recurrent model brings added value compared
 A ConvGRU model is a neural network architecture that combines the concepts of Convolutional Neural Networks (CNNs) and Gated Recurrent Units (GRUs). The ConvGRU model blends the strengths of both architectures to handle spatiotemporal data efficiently.
 
 The architecture of the model is as follows :
-![RNN Architecture](images/RNN_schema.png)
+<div align="center">
+  <img src="./images/RNN_schema.png"/>
+</div>
 
 RNN blocks correspond to the GRU cell, while Conv2D and Conv2DTranspose operations act as upsampler and downsampler with stride. This helps analysing at different resolution levels and capture a global representation for the deepest layers, which can help guide the update of shallower layers. 
 
@@ -30,17 +32,13 @@ RNN blocks correspond to the GRU cell, while Conv2D and Conv2DTranspose operatio
 
 The architecture of this neural network is the same as the previous Conv-GRU neural network shown in the figure above. Only the type of recurrent cell used changes. The TrajGRU recurrent cell is an extension of the ConvGRU cell, in which recurrent connections between cache states are learned automatically. 
 
-<div style="display:flex; justify-content:center;">
-    <figure>
-        <img src="./images/liaison_tradi_CNN.png" width="500"/>
-        <figcaption style="text-align: center;"> In traditional RNN, recurrent connections are fixed over time.  </figcaption>
-    </figure>
+<div align="center">
+  <img src="./images/liaison_tradi_CNN.png" width="500"/>
+  <div align="center"> In traditional RNN, recurrent connections are fixed over time.  </div>
 </div>
-<div style="display:flex; justify-content:center;">
-    <figure>
-        <img src="./images/liaison_traj_gru.png" width="500"/>
-    <figcaption style="text-align: center;"> In TrajGRU, recurrent connections are dynamically determined </figcaption>
-    </figure>
+<div align="center">
+  <img src="./images/liaison_traj_gru.png" width="500"/>
+  <div align="center"> In TrajGRU, recurrent connections are dynamically determined. </div>
 </div>
 
 Figures are from [[2]](#ref2).
@@ -231,27 +229,25 @@ We have also studied the joint use of rainfall data with wind data in two compon
 Metrics are defined at the end of this README.md.
 
 For a pixel $p_{i,j}$ in the image, the classes are the following:
-- CLass 1 if $ 0.1 $ mm/h $ \le p_{i, j} < 1 $ mm/h
-- Class 2 if $ 1 $ mm/h $ \le p_{i, j} < 2.5 $ mm/h
-- Class 3 if $ 2.5 $ mm/h $ \le p_{i, j} $
+- CLass 1 if $0.1$ mm/h $\le p_{i, j} < 1$ mm/h
+- Class 2 if $1$ mm/h $\le p_{i, j} < 2.5$ mm/h
+- Class 3 if $2.5$ mm/h $\le p_{i, j}$
 
 Recurrent neural networks perform better than U-Net for high precipitation rates, which tends to generate blurry predictions but scores well at low precipitation rates. 
 Without wind data, TrajGRU improves on ConvGRU, especially for classes 2 and 3. Estimating the optical flow seems to help understand the context and improve prediction. With wind data, these two neural networks have similar results, and the optical flow estimation module is no longer necessary, since the input wind data already provides this information. 
 
 ### b. Examples of predictions
 
-<div style="display:flex; justify-content:center;">
-    <figure>
-        <img src="./images/ex1_pred.gif" width="150"/>
-        <img src="./images/ex1_target.gif" width="150"/>
-    </figure>
+<div align="center">
+  <div align="center"> Example 1 </div>
+  <img src="./images/ex1_pred.gif" width="150"/>
+  <img src="./images/ex1_target.gif" width="150"/>
 </div>
 
-<div style="display:flex; justify-content:center;">
-    <figure>
-        <img src="./images/ex2_pred.gif" width="150"/>
-        <img src="./images/ex2_target.gif" width="150"/>
-    </figure>
+<div align="center">
+  <div align="center"> Example 2 </div>
+  <img src="./images/ex2_pred.gif" width="150"/>
+  <img src="./images/ex2_target.gif" width="150"/>
 </div>
 
 On the left, the prediction made by the TrajGRU model, on the right, the ground truth.
@@ -301,7 +297,7 @@ You may also need to change the folder path of the data.
 
 ### F1-Score
 $$
-F_1=2 \times \frac{P P V \times T P R}{P P V+T P R}=\frac{2 T P}{2 T P+F P+F N}
+F_1=\frac{2 T P}{2 T P+F P+F N}
 $$
 
 ### Threat Score or critical success index
