@@ -30,7 +30,7 @@ RNN blocks correspond to the GRU cell, while Conv2D and Conv2DTranspose operatio
 
 #### TrajGRU
 
-The architecture of this neural network is the same as the previous Conv-GRU neural network shown in the figure above. Only the type of recurrent cell used changes. The TrajGRU recurrent cell is an extension of the ConvGRU cell, in which recurrent connections between cache states are learned automatically. 
+The architecture of this neural network is the same as the previous Conv-GRU neural network shown in the figure above. Only the type of recurrent cell used changes. The TrajGRU recurrent cell is an extension of the ConvGRU cell, in which recurrent connections between hidden states are learned automatically. 
 
 <div align="center">
   <img src="./images/liaison_tradi_CNN.png" width="500"/>
